@@ -3,7 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use App\Mail\PasswordResetMail;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
@@ -65,5 +70,27 @@ class AuthController extends Controller
     {
         auth()->user()->tokens()->delete();
         return $this->successResponse(null, 'User logged out successfully');
+    }
+
+    public function forgotPassword(Request $request)
+    {
+        $validatedData = Validator::make($request->all(), [
+            'email' => 'required|email|exists:users,email',
+        ]);
+        if ($validatedData->fails()) {
+            return $this->validationErrorResponse($validatedData->errors(), "Validation failed");
+        }
+
+        $token = Str::random(6);
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $request->email],
+            ['token' => Hash::make($token), 'created_at' => now()]
+        );
+
+        Mail::to($request->email)->send(new PasswordResetMail($token, $request->email));
+        $token = Str::random(60);  
+
+        return $this->successResponse(null, 'Password reset link sent to your email.');
     }
 }
