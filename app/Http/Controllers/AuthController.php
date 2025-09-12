@@ -91,8 +91,31 @@ class AuthController extends Controller
         );
 
         Mail::to($request->email)->send(new PasswordResetMail($token, $request->email, $firstname));
-        $token = Str::random(60);  
+        $token = Str::random(60);
 
         return $this->successResponse(null, 'Password reset link sent to your email.');
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'token' => 'required',
+            'password' => 'required|string|min:8|confirmed'
+        ]);
+
+        $reset = DB::table('password_reset_tokens')->where('email', $request->email)->first();
+
+        if (!$reset || !Hash::check($request->token, $reset->token)) {
+            return $this->badRequestResponse('Bad request', 'Invalid token.');
+        }
+
+        User::where('email', $request->email)->update([
+            'password' => bcrypt($request->password)
+        ]);
+
+        DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+        return $this->successResponse('Password reset successful');
     }
 }
