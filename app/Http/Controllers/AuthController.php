@@ -81,6 +81,8 @@ class AuthController extends Controller
             return $this->validationErrorResponse($validatedData->errors(), "Validation failed");
         }
 
+        $user = DB::table('users')->where('email', $request->email)->first();
+        $firstname = $user ? $user->first_name : '';
         $token = Str::random(6);
 
         DB::table('password_reset_tokens')->updateOrInsert(
@@ -88,7 +90,7 @@ class AuthController extends Controller
             ['token' => Hash::make($token), 'created_at' => now()]
         );
 
-        Mail::to($request->email)->send(new PasswordResetMail($token, $request->email));
+        Mail::to($request->email)->send(new PasswordResetMail($token, $request->email, $firstname));
         $token = Str::random(60);  
 
         return $this->successResponse(null, 'Password reset link sent to your email.');

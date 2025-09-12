@@ -18,10 +18,12 @@ class PasswordResetMail extends Mailable
      */
     public $email;
     public $token;
-    public function __construct($token, $email)
+    public $firstname;
+    public function __construct($token, $email, $firstname)
     {
         $this->email = $email;
         $this->token = $token;
+        $this->firstname = $firstname;
     }
 
     /**
