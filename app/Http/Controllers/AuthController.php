@@ -39,4 +39,25 @@ class AuthController extends Controller
             'user' => $user,
         ], 201);
     }
+
+    public function login(Request $request)
+    {
+        $validatedData = Validator::make($request->all(), [
+            'email' => 'required|string|email',
+            'password' => 'required|string',
+        ]);
+        if ($validatedData->fails()) {
+            return $this->validationErrorResponse($validatedData->errors(), "Validation failed");
+        }
+        $user = User::where('email', $request->email)->first();
+        if (!$user || !password_verify($request->password, $user->password)) {
+            return $this->unauthorizedResponse('Invalid credentials');
+        }
+        $token = $user->createToken('Personal Access Token')->plainTextToken;
+        return $this->successResponse([
+            'message' => 'User logged in successfully',
+            'user' => $user,
+            'token' => $token,
+        ]);
+    }
 }
