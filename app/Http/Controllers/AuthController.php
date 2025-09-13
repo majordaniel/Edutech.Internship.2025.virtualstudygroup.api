@@ -35,10 +35,11 @@ class AuthController extends Controller
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
             'email' => $request->email,
+            'avatar' => 'avatars/avatar.jpeg',
             'password' => bcrypt($request->password),
         ]);
 
-        $token = $user->createToken('Personal Access Token')->plainTextToken;
+        // $token = $user->createToken('Personal Access Token')->plainTextToken;
         return response()->json([
             'message' => 'User registered successfully',
             'user' => $user,

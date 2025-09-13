@@ -1,8 +1,10 @@
 <?php
 
-use App\Http\Controllers\AuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ProfileController;
+use Symfony\Component\HttpKernel\Profiler\Profile;
 
 // =====================
 // AUTH ROUTES 
@@ -13,4 +15,12 @@ Route::group(['prefix' => 'auth'], function(){
     Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
     Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('reset-password', [AuthController::class, 'resetPassword']);
+});
+
+// =====================
+// PROFILE ROUTES
+// =====================
+Route::group(['prefix' => 'profile', 'middleware' => 'auth:sanctum'], function(){
+    Route::get('/', [ProfileController::class, 'getProfile']); 
+    Route::post('avatar', [ProfileController::class, 'updateAvatar']);
 });

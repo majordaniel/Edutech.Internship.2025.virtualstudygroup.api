@@ -18,10 +18,13 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+
+    protected $appends = ['avatar_url'];
     protected $fillable = [
         'first_name',
         'last_name',
         'email',
+        'avatar',
         'password',
     ];
 
@@ -34,6 +37,11 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    public function getAvatarUrlAttribute()
+    {
+        return asset('storage/' . $this->avatar);
+    }
 
     /**
      * Get the attributes that should be cast.
