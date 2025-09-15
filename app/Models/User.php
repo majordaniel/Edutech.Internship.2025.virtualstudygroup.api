@@ -43,6 +43,20 @@ class User extends Authenticatable
         return asset('storage/' . $this->avatar);
     }
 
+    public function studyGroups()
+    {
+        return $this->belongsToMany(StudyGroup::class, 'study_group_user');
+    }
+
+    public function courses()
+    {
+        return $this->belongsToMany(Course::class, 'course_user');
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
+    }
     /**
      * Get the attributes that should be cast.
      *
