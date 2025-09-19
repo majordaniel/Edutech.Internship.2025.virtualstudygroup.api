@@ -25,14 +25,3 @@ Route::group(['prefix' => 'profile', 'middleware' => 'auth:sanctum'], function()
     Route::get('/', [ProfileController::class, 'getProfile']);
     Route::post('avatar', [ProfileController::class, 'updateAvatar']);
 });
-
-// =====================
-// STUDY GROUP ROUTES
-// =====================
-Route::group(['prefix' => 'study-groups'], function () {
-    Route::get('/', [StudyGroupController::class, 'index']);
-
-    Route::post('/', [StudyGroupController::class, 'store']);
-
-    Route::post('{id}/add-member', [StudyGroupController::class, 'addMember']);
-});
