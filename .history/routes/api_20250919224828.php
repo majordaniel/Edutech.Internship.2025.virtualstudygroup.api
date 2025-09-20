@@ -29,8 +29,10 @@ Route::group(['prefix' => 'profile', 'middleware' => 'auth:sanctum'], function()
 // =====================
 // STUDY GROUP ROUTES
 // =====================
-Route::group(['prefix' => 'study-groups', 'middleware' => 'auth:sanctum'], function () {
-    Route::post('/study-groups', [StudyGroupController::class, 'store']);
+Route::group(['prefix' => 'study-groups'], function () {
+    Route::get('/', [StudyGroupController::class, 'index']);
+
+    Route::post('/', [StudyGroupController::class, 'store']);
 
     Route::get('/participants/search', [StudyGroupController::class, 'searchParticipants']);
 

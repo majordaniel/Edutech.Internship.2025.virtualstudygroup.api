@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\group_members_table as GroupMember;
 use Illuminate\Database\Eloquent\Model;
 
 class study_groups extends Model

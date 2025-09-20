@@ -12,7 +12,13 @@ use Illuminate\Support\Facades\DB;
 
 class StudyGroupController extends Controller
 {
-    //function to get courses for the drop down
+
+    public function index()
+    {
+        return StudyGroup::with('members')->get();
+    }
+
+    //function to get courses for the rop down
     public function getcourses()
     {
         $courses = courses::all();
@@ -22,27 +28,46 @@ class StudyGroupController extends Controller
     //search for participants
     public function searchParticipants(Request $request)
     {
-        //validating the query
         $request->validate([
             'query' => 'required|string|max:255',
         ]);
 
-        //assigning the query to a variable named query
         $query = $request->input('query');
 
-        //checking if the query is empty
         if (!$query) {
             return response()->json([]);
         }
 
-        //Searching for students in the database
         $students = User::where('first_name', 'like', "%{$query}%")
         ->orWhere('last_name', 'like', "%{$query}%")
         ->orWhere('email', 'like', "%{$query}%")
         ->get();
 
-        //returning the response
         return response()->json($students);
+    }
+
+    // Add a student to a group
+    public function addMember(Request $request, $groupId)
+    {
+        $request->validate([
+            'student_id' => 'required|exists:students,id',
+            'course_id' => 'required|exists:courses,id',
+        ]);
+
+        // resolve course_code from courses table
+        $course = courses::find($request->course_id);
+
+        $member = GroupMember::create([
+            'group_id' => $groupId,
+            'student_id' => $request->student_id,
+            'course_code' => $course?->course_code ?? null,
+            'role' => $request->input('role', 'Member'),
+        ]);
+
+        return response()->json([
+            'message' => 'Student added to group',
+            'member' => $member
+        ], 201);
     }
 
     //function to create groups and ass members
@@ -63,7 +88,6 @@ class StudyGroupController extends Controller
         $group = null;
         $group_id = null;
 
-        //setting a function to run all that is inputed in it as a database transaction
         DB::transaction(function () use ($request, &$group, &$group_id) {
             // generate a group id only when creating
             $group_id = Str::upper(Str::random(6));
@@ -108,5 +132,31 @@ class StudyGroupController extends Controller
             'message' => 'Study group created successfully',
             'group'   => $group->load('members'),
         ], 201);
+    }
+
+
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        //
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, string $id)
+    {
+        //
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        //
     }
 }

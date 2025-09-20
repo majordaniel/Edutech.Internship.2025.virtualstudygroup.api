@@ -63,7 +63,6 @@ class StudyGroupController extends Controller
         $group = null;
         $group_id = null;
 
-        //setting a function to run all that is inputed in it as a database transaction
         DB::transaction(function () use ($request, &$group, &$group_id) {
             // generate a group id only when creating
             $group_id = Str::upper(Str::random(6));
