@@ -61,12 +61,8 @@ class StudyGroupController extends Controller
         $group = null;
         $group_id = null;
 
-
         //setting a function to run all that is inputed in it as a database transaction
         DB::transaction(function () use ($request, &$group, &$group_id) {
-            //getting the authenticated user id
-            $userId = auth()->id();
-
             // generate a group id only when creating
             $group_id = Str::upper(Str::random(6));
 
@@ -74,7 +70,7 @@ class StudyGroupController extends Controller
             $group = StudyGroup::firstOrCreate([
                 'group_name' => $request->group_name,
                 'course_id' => $request->course_id,
-                'created_by' => $userId,
+                'created_by' => $request->user_id,
             ], [
                 'group_id' => $group_id,
                 'description' => $request->description,
@@ -86,7 +82,7 @@ class StudyGroupController extends Controller
             // Add creator as leader (firstOrCreate prevents duplicate member rows)
             GroupMember::firstOrCreate([
                 'group_id' => $group->group_id,
-                'student_id' => $userId,
+                'student_id' => $request->user_id,
             ], [
                 'course_code' => $course?->course_code ?? null,
                 'role' => 'Leader',

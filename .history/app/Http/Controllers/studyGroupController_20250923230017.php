@@ -60,13 +60,10 @@ class StudyGroupController extends Controller
         // use DB transaction and firstOrCreate to make operation idempotent
         $group = null;
         $group_id = null;
-
+        $userId = auth()->id();
 
         //setting a function to run all that is inputed in it as a database transaction
         DB::transaction(function () use ($request, &$group, &$group_id) {
-            //getting the authenticated user id
-            $userId = auth()->id();
-
             // generate a group id only when creating
             $group_id = Str::upper(Str::random(6));
 
