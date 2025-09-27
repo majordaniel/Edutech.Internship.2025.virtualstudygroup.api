@@ -111,4 +111,18 @@ class StudyGroupController extends Controller
             'group'   => $group->load('members'),
         ], 201);
     }
+
+    //function to get the groups of a user
+    public function getUserGroups(Request $request)
+    {
+        $userId = auth()->id();
+
+        // Fetch groups where the user is a member
+        $groups = GroupMember::where('student_id', $userId)->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $groups
+        ]);
+    }
 }
