@@ -1,0 +1,21 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\group_members_table as GroupMember;
+use Illuminate\Database\Eloquent\Model;
+
+class study_groups extends Model
+{
+    protected $fillable = [
+        'group_id',
+        'group_name',
+        'course_id',
+        'created_by',
+        'description',
+    ];
+    public function members()
+    {
+        return $this->hasMany(GroupMember::class, 'group_id');
+    }
+}
