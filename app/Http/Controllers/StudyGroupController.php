@@ -113,7 +113,7 @@ class StudyGroupController extends Controller
     }
 
     //function to get the groups of a user
-    public function getUserGroups(Request $request)
+    public function getUserGroups()
     {
         $userId = auth()->id();
 

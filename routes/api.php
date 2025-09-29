@@ -32,9 +32,9 @@ Route::group(['prefix' => 'profile', 'middleware' => 'auth:sanctum'], function()
 Route::group(['prefix' => 'study-groups', 'middleware' => 'auth:sanctum'], function () {
     Route::post('/create', [StudyGroupController::class, 'store']);
 
-     Route::post('/getUserGroups', [StudyGroupController::class, 'getUserGroups']);
+     Route::get('/getUserGroups', [StudyGroupController::class, 'getUserGroups']);
 
-    Route::get('/participants/search', [StudyGroupController::class, 'searchParticipants']);
+    Route::post('/participants/search', [StudyGroupController::class, 'searchParticipants']);
 
     Route::get('/getcourses', [StudyGroupController::class, 'getcourses']);
 
