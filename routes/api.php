@@ -39,4 +39,11 @@ Route::group(['prefix' => 'study-groups', 'middleware' => 'auth:sanctum'], funct
     Route::get('/getcourses', [StudyGroupController::class, 'getcourses']);
 
     Route::post('{id}/add-member', [StudyGroupController::class, 'addMember']);
+
+   
+    Route::post('{groupId}/join-request', [StudyGroupController::class, 'requestToJoinGroup']);
+    
+    Route::post('{requestId}/handle-request', [StudyGroupController::class, 'handleJoinRequest']);
 });
+
+Route::get('/study-rooms', [StudyGroupController::class, 'getStudyRooms'])->middleware('auth:sanctum');

@@ -19,6 +19,7 @@ class group_members_table extends Model
     ];
     public function student()
     {
-        return $this->belongsTo(students::class, 'student_id');
+        // return $this->belongsTo(students::class, 'student_id');
+        return $this->belongsTo(User::class, 'student_id');
     }
 }

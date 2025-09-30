@@ -11,13 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('group_members_tables', function (Blueprint $table) {
+        Schema::create('study_group_join_requests', function (Blueprint $table) {
             $table->id();
-            $table->string('group_id');
-            // $table->string('student_id');
-            $table->string('student_id')->constrained('users')->onDelete('cascade');
-            $table->string('course_code');
-            $table->string('role');
+            $table->foreignId('group_id')->constrained('study_groups')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->timestamps();
         });
     }
@@ -27,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('group_members_tables');
+        Schema::dropIfExists('study_group_join_requests');
     }
 };

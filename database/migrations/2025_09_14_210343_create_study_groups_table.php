@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('study_groups', function (Blueprint $table) {
             $table->id();
-            $table->string('group_id');
+            $table->string('group_id')->unique();
             $table->string('group_name');
             $table->string('course_id');
-            $table->string('created_by');
+            $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->string('description');
             $table->timestamps();
         });
