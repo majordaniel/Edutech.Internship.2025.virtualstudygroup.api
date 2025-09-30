@@ -55,4 +55,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    // app/Models/User.php
+    public function groups()
+    {
+        return $this->belongsToMany(StudyGroup::class, 'group_members_tables', 'student_id', 'group_id')
+        ->withPivot('role')
+        ->withTimestamps();
+    }
 }

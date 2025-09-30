@@ -160,9 +160,66 @@ class StudyGroupController extends Controller
             'role' => 'Member',
         ]);
 
+        // Prepare response arrays expected by tests
+        $requested = [$request->student_id];
+        $added = [$member->student_id ?? $request->student_id];
+
         return response()->json([
             'message' => 'Member added successfully',
-            'group' => $group->load('members')
+            'group' => $group->load('members'),
+            'requested' => $requested,
+            'added' => $added,
+        ], 200);
+    }
+
+    // Function to leave a study group
+    public function leaveGroup(Request $request, $groupIdentifier)
+    {
+        $userId = (string) $request->user()->id;
+
+        // Resolve StudyGroup by numeric id or by group_id string
+        $group = null;
+        if (is_numeric($groupIdentifier)) {
+            $group = StudyGroup::find($groupIdentifier);
+        }
+
+        if (!$group) {
+            $group = StudyGroup::where('group_id', $groupIdentifier)->first();
+        }
+
+        if (!$group) {
+            return response()->json(['message' => 'Study group not found.'], 404);
+        }
+
+        // Find the membership record in the actual members table/model
+        $member = GroupMember::where('group_id', $group->group_id)
+            ->where('student_id', $userId)
+            ->first();
+
+        if (!$member) {
+            return response()->json([
+                'message' => 'You are not a member of this group.'
+            ], 403);
+        }
+
+        // If the member is a Leader, ensure there is another Leader before allowing leave
+        if (isset($member->role) && strtolower($member->role) === 'leader') {
+            $leaderCount = GroupMember::where('group_id', $group->group_id)
+                ->whereRaw("LOWER(role) = ?", ['leader'])
+                ->count();
+
+            if ($leaderCount <= 1) {
+                return response()->json([
+                    'message' => 'You cannot leave as the only leader. Please assign another leader first.'
+                ], 403);
+            }
+        }
+
+        // Delete the membership row
+        $member->delete();
+
+        return response()->json([
+            'message' => 'You have left the group successfully.'
         ], 200);
     }
 }

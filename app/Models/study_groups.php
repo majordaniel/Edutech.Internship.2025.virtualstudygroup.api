@@ -29,4 +29,12 @@ class study_groups extends Model
     {
         return $this->hasMany(Message::class, 'group_id');
     }
+
+    // Actual users in group
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'group_members_tables', 'group_id', 'student_id')
+        ->withPivot('role')
+        ->withTimestamps();
+    }
 }

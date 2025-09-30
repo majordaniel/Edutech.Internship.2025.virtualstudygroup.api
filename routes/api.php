@@ -39,4 +39,6 @@ Route::group(['prefix' => 'study-groups', 'middleware' => 'auth:sanctum'], funct
     Route::get('/getcourses', [StudyGroupController::class, 'getcourses']);
 
     Route::post('{id}/add-member', [StudyGroupController::class, 'addMember']);
+
+    Route::delete('/groups/{group}/leave', [StudyGroupController::class, 'leaveGroup']);
 });
