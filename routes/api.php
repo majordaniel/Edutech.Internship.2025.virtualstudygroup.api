@@ -47,3 +47,13 @@ Route::group(['prefix' => 'study-groups', 'middleware' => 'auth:sanctum'], funct
 });
 
 Route::get('/study-rooms', [StudyGroupController::class, 'getStudyRooms'])->middleware('auth:sanctum');
+
+// =====================
+// NOTIFICATIONS ROUTES 
+// =====================
+Route::group(['prefix' => 'notifications', 'middleware' => 'auth:sanctum'], function () {
+    Route::get('/', [ProfileController::class, 'getNotifications']);
+    Route::get('/unread', [ProfileController::class, 'getUnreadNotifications']);
+    Route::post('/{id}/mark-as-read', [ProfileController::class, 'markAsRead']);
+    Route::post('/mark-all-as-read', [ProfileController::class, 'markAllAsRead']);
+});
