@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use App\Models\courses;
-use App\Models\students;
+use App\Models\User;
 use App\Models\study_groups;
 use App\Models\group_members_table;
 
@@ -17,36 +17,35 @@ class StudyGroupStoreTest extends TestCase
     {
         // Create prerequisite course and student
         $course = courses::create([
+            'course_id' => 'C-001',
+            'course_name' => 'Intro to CS',
             'course_code' => 'CSC101',
-            'course_title' => 'Intro to CS',
-            'department_id' => 'CS',
-            'level' => '100'
+            'course_description' => 'Introduction to Computer Science',
+            'Credit_units' => '3',
+            'semester' => '1',
+            'level' => '100',
+            'department' => 'CS',
         ]);
 
-        $student = students::create([
-            'student_id' => 'S001',
+        // create a user and authenticate as that user
+        $user = User::factory()->create([
+            'email' => 'test@student.local',
             'first_name' => 'Test',
             'last_name' => 'Student',
-            'date_of_birth' => '2000-01-01',
-            'gender' => 'M',
-            'email' => 'test@student.local',
-            'phone_number' => '1234567890',
-            'department_id' => 'CS',
-            'matric_number' => 'MAT001',
-            'status' => 'active'
         ]);
+
+        $this->actingAs($user);
 
         $payload = [
             'group_name' => 'Study Group A',
             'course_id' => $course->id,
-            'created_by' => $student->id,
             'description' => 'A test group'
         ];
 
-        $response = $this->postJson('/api/study-groups', $payload);
+    $response = $this->postJson('/api/study-groups/create', $payload);
 
         $response->assertStatus(201);
         $this->assertDatabaseHas('study_groups', ['group_name' => 'Study Group A']);
-        $this->assertDatabaseHas('group_members_table', ['student_id' => $student->id, 'role' => 'Leader']);
+    $this->assertDatabaseHas('group_members_tables', ['student_id' => (string)$user->id, 'role' => 'Leader']);
     }
 }
