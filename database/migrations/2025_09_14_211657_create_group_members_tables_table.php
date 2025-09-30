@@ -14,8 +14,7 @@ return new class extends Migration
         Schema::create('group_members_tables', function (Blueprint $table) {
             $table->id();
             $table->string('group_id');
-            // $table->string('student_id');
-            $table->string('student_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('student_id')->constrained('users')->onDelete('cascade');
             $table->string('course_code');
             $table->string('role');
             $table->timestamps();

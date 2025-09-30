@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('group_id')->unique();
             $table->string('group_name');
-            $table->string('course_id');
+            $table->foreignId('course_id')->constrained('courses')->onDelete('cascade');
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->string('description');
             $table->timestamps();
