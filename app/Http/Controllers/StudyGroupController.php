@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\ApiResponse;
+use Illuminate\Support\Str;
 use App\Models\User as User;
+use Illuminate\Http\Request;
 use App\Models\courses as courses;
+use Illuminate\Support\Facades\DB;
+use App\Models\StudyGroupJoinRequest;
 use App\Models\study_groups as StudyGroup;
 use App\Models\group_members_table as GroupMember;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
 
 class StudyGroupController extends Controller
 {
@@ -136,5 +137,32 @@ class StudyGroupController extends Controller
         $groups = StudyGroup::all();
 
         return $this->successResponse($groups, 'Study rooms fetched successfully');
+    }
+
+    public function requestToJoinGroup($groupId)
+    {
+        $group = StudyGroup::where('id', $groupId)->first();
+        // dd($group);
+        if (!$group) {
+            return $this->notFoundResponse('Study group not found');
+        }
+        
+        // Check if request already exists
+        $existing = StudyGroupJoinRequest::where('group_id', $groupId)
+            ->where('user_id', auth()->id())
+            ->where('status', 'pending')
+            ->first();  
+        
+        if ($existing) {
+            return $this->badRequestResponse('You have already requested to join this group');             
+        }
+
+        $joinRequest = StudyGroupJoinRequest::create([
+            'group_id' => $groupId,
+            'user_id' => auth()->id(),
+            'status' => 'pending',
+        ]);
+
+        return $this->createdResponse($joinRequest, 'Join request submitted successfully');
     }
 }
