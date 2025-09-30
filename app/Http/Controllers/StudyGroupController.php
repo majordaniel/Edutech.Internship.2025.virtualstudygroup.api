@@ -168,4 +168,52 @@ class StudyGroupController extends Controller
 
         return $this->createdResponse($joinRequest, 'Join request submitted successfully');
     }
+
+    public function handleJoinRequest(Request $request, $requestId)
+    {
+        $request->validate([
+            'action' => 'required|in:approve,reject',
+        ]);
+
+        $joinRequest = StudyGroupJoinRequest::find($requestId);
+
+        if (!$joinRequest) {
+            return $this->notFoundResponse('Join request not found');
+        }
+
+        if ($joinRequest->status !== 'pending') {
+            return $this->badRequestResponse('This join request has already been handled');
+        }
+
+        $group = StudyGroup::where('id', $joinRequest->group_id)->first();
+        if (!$group) {
+            return $this->notFoundResponse('Study group not found');
+        }
+
+        // Only group creator can handle requests
+        if ($group->created_by !== auth()->id()) {
+            return $this->unauthorizedResponse('Only the group creator can handle join requests');
+        }
+
+        if ($request->action === 'approve') {
+            // Add user as member if not already
+            $course = courses::find($group->course_id);
+            GroupMember::firstOrCreate([
+                'group_id' => $group->group_id,
+                'student_id' => $joinRequest->user_id,
+            ], [
+                'course_code' => $course?->course_code ?? null,
+                'role' => 'Member',
+            ]);
+            $joinRequest->status = 'approved';
+            $joinRequest->save();
+
+            return $this->successResponse($joinRequest, 'Join request accepted');
+        } else {
+            $joinRequest->status = 'rejected';
+            $joinRequest->save();
+
+            return $this->successResponse($joinRequest, 'Join request rejected');
+        }
+    }
 }
