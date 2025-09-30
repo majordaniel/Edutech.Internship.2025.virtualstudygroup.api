@@ -7,12 +7,13 @@ use Illuminate\Support\Str;
 use App\Models\User as User;
 use Illuminate\Http\Request;
 use App\Models\courses as courses;
-use App\Models\group_meetings_table;
 use Illuminate\Support\Facades\DB;
+use App\Models\group_meetings_table;
 use App\Models\StudyGroupJoinRequest;
 use App\Models\study_groups as StudyGroup;
 use App\Notifications\JoinRequestNotification;
 use App\Models\group_members_table as GroupMember;
+use App\Notifications\JoinRequestStatusNotification;
 
 class StudyGroupController extends Controller
 {
@@ -168,12 +169,8 @@ class StudyGroupController extends Controller
             'user_id' => auth()->id(),
             'status' => 'pending',
         ]);
-
-
-        
+  
         $admin = User::find($group->created_by);
-        // dd($admin);
-        // $group->->notify(new JoinRequestNotification($joinRequest));
         $admin->notify(new JoinRequestNotification($joinRequest));
 
         return $this->createdResponse($joinRequest, 'Join request submitted successfully');
@@ -217,6 +214,8 @@ class StudyGroupController extends Controller
             ]);
             $joinRequest->status = 'approved';
             $joinRequest->save();
+
+            $joinRequest->user->notify(new JoinRequestStatusNotification($joinRequest, 'approved', $group->group_name));
 
             return $this->successResponse($joinRequest, 'Join request accepted');
         } else {
