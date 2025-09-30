@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\ApiResponse;
 use App\Models\User as User;
 use App\Models\courses as courses;
 use App\Models\study_groups as StudyGroup;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 class StudyGroupController extends Controller
 {
+    use ApiResponse;
     //function to get courses for the drop down
     public function getcourses()
     {
@@ -124,5 +126,15 @@ class StudyGroupController extends Controller
             'status' => 'success',
             'data' => $groups
         ]);
+    }
+
+    public function getStudyRooms()
+    {
+        $userId = auth()->id();
+
+        // Fetch all study groups
+        $groups = StudyGroup::all();
+
+        return $this->successResponse($groups, 'Study rooms fetched successfully');
     }
 }
