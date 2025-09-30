@@ -125,4 +125,44 @@ class StudyGroupController extends Controller
             'data' => $groups
         ]);
     }
+
+    // Add member(s) to a study group by group_id
+    public function addMember(Request $request, $id)
+    {
+        // Validate request: make sure the student exists in users table
+        $request->validate([
+            'student_id' => 'required|integer|exists:users,id',
+        ]);
+
+        // Try to find group by numeric primary key first, then fall back to group_id string
+        $group = null;
+        if (is_numeric($id)) {
+            $group = StudyGroup::find($id);
+        }
+
+        if (!$group) {
+            $group = StudyGroup::where('group_id', $id)->first();
+        }
+
+        if (!$group) {
+            return response()->json(['message' => 'Study group not found'], 404);
+        }
+
+        // Resolve course code if available
+        $course = courses::find($group->course_id);
+
+        // Add student to group using GroupMember model to avoid using sync on hasMany
+        $member = GroupMember::firstOrCreate([
+            'group_id' => $group->group_id,
+            'student_id' => $request->student_id,
+        ], [
+            'course_code' => $course?->course_code ?? null,
+            'role' => 'Member',
+        ]);
+
+        return response()->json([
+            'message' => 'Member added successfully',
+            'group' => $group->load('members')
+        ], 200);
+    }
 }

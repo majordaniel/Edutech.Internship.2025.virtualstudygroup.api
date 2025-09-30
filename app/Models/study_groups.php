@@ -19,8 +19,14 @@ class study_groups extends Model
         'created_by',
         'description',
     ];
+
     public function members()
     {
         return $this->hasMany(GroupMember::class, 'group_id');
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(Message::class, 'group_id');
     }
 }
