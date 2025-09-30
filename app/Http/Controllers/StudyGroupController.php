@@ -142,9 +142,12 @@ class StudyGroupController extends Controller
     public function requestToJoinGroup($groupId)
     {
         $group = StudyGroup::where('id', $groupId)->first();
-        // dd($group);
         if (!$group) {
             return $this->notFoundResponse('Study group not found');
+        }
+
+        if ($group->created_by == auth()->id()) {
+            return $this->badRequestResponse('You are the creator of this group');
         }
         
         // Check if request already exists
