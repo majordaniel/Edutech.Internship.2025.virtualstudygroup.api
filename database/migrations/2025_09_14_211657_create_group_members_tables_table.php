@@ -13,11 +13,12 @@ return new class extends Migration
     {
         Schema::create('group_members_tables', function (Blueprint $table) {
             $table->id();
-            $table->string('group_id');
+            $table->foreignId('study_group_id')->constrained('study_groups')->onDelete('cascade');
             $table->foreignId('student_id')->constrained('users')->onDelete('cascade');
             $table->string('course_code');
-            $table->string('role');
+            $table->string('role')->default('member');
             $table->timestamps();
+            $table->unique(['study_group_id', 'student_id']);
         });
     }
 
