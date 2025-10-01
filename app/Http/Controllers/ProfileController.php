@@ -35,4 +35,11 @@ class ProfileController extends Controller
             'user' => $user,
         ]);
     }
+
+    public function getNotifications(Request $request)
+    {
+        $user = $request->user();
+        $notifications = $user->notifications()->orderBy('created_at', 'desc')->get();
+        return $this->successResponse($notifications, 'Notifications retrieved successfully');
+    }
 }

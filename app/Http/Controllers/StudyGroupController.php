@@ -8,9 +8,12 @@ use App\Models\User as User;
 use Illuminate\Http\Request;
 use App\Models\courses as courses;
 use Illuminate\Support\Facades\DB;
+use App\Models\group_meetings_table;
 use App\Models\StudyGroupJoinRequest;
 use App\Models\study_groups as StudyGroup;
+use App\Notifications\JoinRequestNotification;
 use App\Models\group_members_table as GroupMember;
+use App\Notifications\JoinRequestStatusNotification;
 
 class StudyGroupController extends Controller
 {
@@ -40,9 +43,9 @@ class StudyGroupController extends Controller
 
         //Searching for students in the database
         $students = User::where('first_name', 'like', "%{$query}%")
-        ->orWhere('last_name', 'like', "%{$query}%")
-        ->orWhere('email', 'like', "%{$query}%")
-        ->get();
+            ->orWhere('last_name', 'like', "%{$query}%")
+            ->orWhere('email', 'like', "%{$query}%")
+            ->get();
 
         //returning the response
         return response()->json($students);
@@ -51,59 +54,52 @@ class StudyGroupController extends Controller
     //function to create groups and groups members
     public function store(Request $request)
     {
-        //validating the values
         $request->validate([
             'group_name' => 'required|string|max:255',
-
-            'course_id' => 'required|exists:courses,id',
-
+            'course_id'  => 'required|exists:courses,id',
             'description' => 'required|string',
+            'members'    => 'array',   // optional array of members
+            'members.*'  => 'exists:users,id'
         ]);
 
-        // use DB transaction and firstOrCreate to make operation idempotent
         $group = null;
-        $group_id = null;
 
-
-        //setting a function to run all that is inputed in it as a database transaction
-        DB::transaction(function () use ($request, &$group, &$group_id) {
-            //getting the authenticated user id
+        DB::transaction(function () use ($request, &$group) {
             $userId = auth()->id();
 
-            // generate a group id only when creating
-            $group_id = Str::upper(Str::random(6));
+            // fetch course
+            $course = Courses::findOrFail($request->course_id);
 
-            // create or get existing group by name+course+creator to avoid duplicates
+            // prepend course code to group name
+            $groupName = $course->course_code . ' - ' . $request->group_name;
+
+            // create or get existing group
             $group = StudyGroup::firstOrCreate([
-                'group_name' => $request->group_name,
-                'course_id' => $request->course_id,
+                'group_name' => $groupName,
+                'course_id'  => $request->course_id,
                 'created_by' => $userId,
             ], [
-                'group_id' => $group_id,
                 'description' => $request->description,
             ]);
 
-            // resolve course_code from the course
-            $course = courses::find($request->course_id);
-
-            // Add creator as leader (firstOrCreate prevents duplicate member rows)
+            // dd($group->id);
             GroupMember::firstOrCreate([
-                'group_id' => $group->group_id,
-                'student_id' => $userId,
+                'study_group_id' => $group->id,  // required foreign key
+                'student_id'     => $userId,
             ], [
-                'course_code' => $course?->course_code ?? null,
-                'role' => 'Leader',
+                'course_code'    => $course->course_code,
+                'role'           => 'Leader',
             ]);
+            $group->load('members.user');
 
-            // Add other members if provided (firstOrCreate for each)
             if ($request->has('members')) {
                 foreach ($request->members as $memberId) {
                     GroupMember::firstOrCreate([
-                        'group_id'   => $group->group_id,
-                        'student_id' => $memberId,
+                        'study_group_id' => $group->id,
+                        'student_id'     => $memberId,
                     ], [
-                        'course_code' => $course?->course_code ?? null,
-                        'role'       => 'Member',
+                        'course_code'    => $course->course_code,
+                        'role'           => 'Member',
                     ]);
                 }
             }
@@ -111,9 +107,10 @@ class StudyGroupController extends Controller
 
         return response()->json([
             'message' => 'Study group created successfully',
-            'group'   => $group->load('members'),
+            'group'   => $group ? $group->load('members.user') : null, // eager load members with user info
         ], 201);
     }
+
 
     //function to get the groups of a user
     public function getUserGroups()
@@ -149,22 +146,26 @@ class StudyGroupController extends Controller
         if ($group->created_by == auth()->id()) {
             return $this->badRequestResponse('You are the creator of this group');
         }
-        
+
         // Check if request already exists
         $existing = StudyGroupJoinRequest::where('group_id', $groupId)
             ->where('user_id', auth()->id())
             ->where('status', 'pending')
-            ->first();  
-        
+            ->first();
+
         if ($existing) {
-            return $this->badRequestResponse('You have already requested to join this group');             
+            return $this->badRequestResponse('You have already requested to join this group');
         }
 
         $joinRequest = StudyGroupJoinRequest::create([
             'group_id' => $groupId,
+            'group_name' => $group->group_name,
             'user_id' => auth()->id(),
             'status' => 'pending',
         ]);
+
+        $admin = User::find($group->created_by);
+        $admin->notify(new JoinRequestNotification($joinRequest));
 
         return $this->createdResponse($joinRequest, 'Join request submitted successfully');
     }
@@ -199,7 +200,7 @@ class StudyGroupController extends Controller
             // Add user as member if not already
             $course = courses::find($group->course_id);
             GroupMember::firstOrCreate([
-                'group_id' => $group->group_id,
+                'study_group_id' => $group->id,   
                 'student_id' => $joinRequest->user_id,
             ], [
                 'course_code' => $course?->course_code ?? null,
@@ -207,6 +208,8 @@ class StudyGroupController extends Controller
             ]);
             $joinRequest->status = 'approved';
             $joinRequest->save();
+
+            $joinRequest->user->notify(new JoinRequestStatusNotification($joinRequest, 'approved', $group->group_name));
 
             return $this->successResponse($joinRequest, 'Join request accepted');
         } else {

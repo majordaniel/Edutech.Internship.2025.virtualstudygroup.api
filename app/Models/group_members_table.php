@@ -12,7 +12,7 @@ class group_members_table extends Model
      * @var array
      */
     protected $fillable = [
-        'group_id',
+        'study_group_id',
         'student_id',
         'course_code',
         'role',
@@ -20,6 +20,16 @@ class group_members_table extends Model
     public function student()
     {
         // return $this->belongsTo(students::class, 'student_id');
+        return $this->belongsTo(User::class, 'student_id');
+    }
+
+    public function studyGroup()
+    {
+        return $this->belongsTo(study_groups::class, 'study_group_id');
+    }
+
+    public function user()
+    {
         return $this->belongsTo(User::class, 'student_id');
     }
 }

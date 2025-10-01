@@ -4,8 +4,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileController;
-use Symfony\Component\HttpKernel\Profiler\Profile;
 use App\Http\Controllers\StudyGroupController;
+use App\Http\Controllers\GroupMessageController;
+use Symfony\Component\HttpKernel\Profiler\Profile;
 
 // =====================
 // AUTH ROUTES
@@ -47,3 +48,21 @@ Route::group(['prefix' => 'study-groups', 'middleware' => 'auth:sanctum'], funct
 });
 
 Route::get('/study-rooms', [StudyGroupController::class, 'getStudyRooms'])->middleware('auth:sanctum');
+
+// =====================
+// NOTIFICATIONS ROUTES 
+// =====================
+Route::group(['prefix' => 'notifications', 'middleware' => 'auth:sanctum'], function () {
+    Route::get('/', [ProfileController::class, 'getNotifications']);
+    Route::get('/unread', [ProfileController::class, 'getUnreadNotifications']);
+    Route::post('/{id}/mark-as-read', [ProfileController::class, 'markAsRead']);
+    Route::post('/mark-all-as-read', [ProfileController::class, 'markAllAsRead']);
+});
+
+// =====================
+// GROUP MESSAGES ROUTES
+// =====================
+Route::group(['prefix' => 'groups', 'middleware' => 'auth:sanctum'], function () {
+    Route::post('{groupId}/messages', [GroupMessageController::class, 'sendMessage']);
+    Route::get('{groupId}/messages', [GroupMessageController::class, 'fetchMessages']);
+});

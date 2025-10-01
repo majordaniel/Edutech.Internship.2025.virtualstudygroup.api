@@ -3,10 +3,11 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\GroupMessage;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
@@ -54,5 +55,22 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(GroupMessage::class);
+    }
+
+    public function studyGroups()
+    {
+        return $this->belongsToMany(study_groups::class, 'group_members_table', 'student_id', 'study_group_id')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+    
+    public function memberships()
+    {
+        return $this->hasMany(group_members_table::class, 'student_id');
     }
 }

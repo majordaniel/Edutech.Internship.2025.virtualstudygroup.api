@@ -13,12 +13,16 @@ class StudyGroupJoinRequest extends Model
 
     public function studyGroup()
     {
-        return $this->belongsTo(study_groups::class);
+        return $this->belongsTo(study_groups::class, 'group_id');
     }
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
-}
 
+    public function group()
+    {
+        return $this->belongsTo(study_groups::class, 'group_id');
+    }
+}
