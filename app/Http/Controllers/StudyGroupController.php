@@ -222,4 +222,14 @@ class StudyGroupController extends Controller
             return $this->successResponse($joinRequest, 'Join request rejected');
         }
     }
+
+    public function groupDetails($groupId)
+    {
+        $group = StudyGroup::with('members.user')->find($groupId);
+        if (!$group) {
+            return $this->notFoundResponse('Study group not found');
+        }
+
+        return $this->successResponse($group, 'Study group details fetched successfully');
+    }
 }
