@@ -118,7 +118,10 @@ class StudyGroupController extends Controller
         $userId = auth()->id();
 
         // Fetch groups where the user is a member
-        $groups = GroupMember::where('student_id', $userId)->get();
+        // $groups = GroupMember::where('student_id', $userId)->get();
+        $groups = GroupMember::with('studyGroup')->where('student_id', $userId)->get()->map(function ($member) {
+            return $member->studyGroup;
+        });
 
         return response()->json([
             'status' => 'success',
