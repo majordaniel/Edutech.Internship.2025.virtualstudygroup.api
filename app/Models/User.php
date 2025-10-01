@@ -61,4 +61,16 @@ class User extends Authenticatable
     {
         return $this->hasMany(GroupMessage::class);
     }
+
+    public function studyGroups()
+    {
+        return $this->belongsToMany(study_groups::class, 'group_members_table', 'student_id', 'study_group_id')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+    
+    public function memberships()
+    {
+        return $this->hasMany(group_members_table::class, 'student_id');
+    }
 }
