@@ -12,7 +12,7 @@ class GroupMessageController extends Controller
 {
     use ApiResponse;
     public function sendMessage(Request $request, $groupId)
-    {
+    {   
         $group = study_groups::find($groupId);
         if (!$group) {
             return $this->notFoundResponse('Group not found');
@@ -22,18 +22,16 @@ class GroupMessageController extends Controller
             // 'file' => 'nullable|file|max:2048',
         ]);
 
+        if (!$request->message) {
+            return $this->badRequestResponse('Message cannot be empty');
+        }
         // $filePath = null;
         // if ($request->hasFile('file')) {
         //     $filePath = $request->file('file')->store('messages', 'public');
         // }
 
         $user = auth()->user(); 
-       
         if ($group->members()->where('student_id', $user->id)->doesntExist()) {
-            return $this->forbiddenResponse('You are not a member of this group');
-        }
-
-        if($groupId != $user->study_group_id){
             return $this->forbiddenResponse('You are not a member of this group');
         }
 
