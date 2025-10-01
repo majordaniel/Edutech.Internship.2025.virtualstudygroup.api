@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
@@ -42,9 +43,9 @@ Route::group(['prefix' => 'study-groups', 'middleware' => 'auth:sanctum'], funct
     Route::post('{id}/add-member', [StudyGroupController::class, 'addMember']);
 
    
-    Route::post('{groupId}/join-request', [StudyGroupController::class, 'requestToJoinGroup']);
-    
+    Route::post('{groupId}/join-request', [StudyGroupController::class, 'requestToJoinGroup']);  
     Route::post('{requestId}/handle-request', [StudyGroupController::class, 'handleJoinRequest']);
+    Route::get('{groupId}/details', [StudyGroupController::class, 'groupDetails']);
 });
 
 Route::get('/study-rooms', [StudyGroupController::class, 'getStudyRooms'])->middleware('auth:sanctum');
@@ -65,4 +66,8 @@ Route::group(['prefix' => 'notifications', 'middleware' => 'auth:sanctum'], func
 Route::group(['prefix' => 'groups', 'middleware' => 'auth:sanctum'], function () {
     Route::post('{groupId}/messages', [GroupMessageController::class, 'sendMessage']);
     Route::get('{groupId}/messages', [GroupMessageController::class, 'fetchMessages']);
+});
+
+Route::middleware('auth:sanctum')->get('/users', function (Request $request) {
+    return User::all();
 });
