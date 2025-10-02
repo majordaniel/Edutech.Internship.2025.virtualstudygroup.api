@@ -42,8 +42,14 @@ Route::group(['prefix' => 'study-groups', 'middleware' => 'auth:sanctum'], funct
 
     Route::post('{id}/add-member', [StudyGroupController::class, 'addMember']);
 
-   
-    Route::post('{groupId}/join-request', [StudyGroupController::class, 'requestToJoinGroup']);  
+    Route::delete('/groups/{group}/leave', [StudyGroupController::class, 'leaveGroup']);
+
+    Route::delete('/groups/{group}/admin-remove-members/{user}', [StudyGroupController::class, 'removeMember']);
+
+    Route::get('/study-groups/{group}/files', [StudyGroupController::class, 'index']);
+
+
+    Route::post('{groupId}/join-request', [StudyGroupController::class, 'requestToJoinGroup']);
     Route::post('{requestId}/handle-request', [StudyGroupController::class, 'handleJoinRequest']);
     Route::get('{groupId}/details', [StudyGroupController::class, 'groupDetails']);
 });
@@ -51,7 +57,7 @@ Route::group(['prefix' => 'study-groups', 'middleware' => 'auth:sanctum'], funct
 Route::get('/study-rooms', [StudyGroupController::class, 'getStudyRooms'])->middleware('auth:sanctum');
 
 // =====================
-// NOTIFICATIONS ROUTES 
+// NOTIFICATIONS ROUTES
 // =====================
 Route::group(['prefix' => 'notifications', 'middleware' => 'auth:sanctum'], function () {
     Route::get('/', [ProfileController::class, 'getNotifications']);

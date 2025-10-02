@@ -20,6 +20,11 @@ class study_groups extends Model
         'description',
     ];
 
+    public function files()
+    {
+        return $this->hasMany(File::class, 'group_id');
+    }
+
 
     public function messages()
     {
@@ -40,6 +45,6 @@ class study_groups extends Model
 
     public function members()
     {
-        return $this->hasMany(group_members_table::class, 'study_group_id');
+        return $this->hasMany(group_members_table::class, 'group_id');
     }
 }
