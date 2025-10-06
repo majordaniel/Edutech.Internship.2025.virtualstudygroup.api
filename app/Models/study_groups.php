@@ -13,7 +13,7 @@ class study_groups extends Model
      * @var array
      */
     protected $fillable = [
-        'group_id',
+        'study_group_id',
         'group_name',
         'course_id',
         'created_by',
@@ -45,6 +45,6 @@ class study_groups extends Model
 
     public function members()
     {
-        return $this->hasMany(group_members_table::class, 'group_id');
+        return $this->hasMany(group_members_table::class, 'study_group_id');
     }
 }
