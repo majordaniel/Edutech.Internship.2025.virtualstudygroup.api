@@ -11,8 +11,10 @@ use Illuminate\Support\Facades\DB;
 use App\Models\group_meetings_table;
 use App\Models\StudyGroupJoinRequest;
 use App\Models\study_groups as StudyGroup;
+use Illuminate\Notifications\Notification;
 use App\Notifications\JoinRequestNotification;
 use App\Models\group_members_table as GroupMember;
+use Illuminate\Notifications\DatabaseNotification;
 use App\Notifications\JoinRequestStatusNotification;
 
 class StudyGroupController extends Controller
@@ -180,6 +182,7 @@ class StudyGroupController extends Controller
         ]);
 
         $joinRequest = StudyGroupJoinRequest::find($requestId);
+        // $notification = DB::table('notifications');
 
         if (!$joinRequest) {
             return $this->notFoundResponse('Join request not found');
@@ -210,6 +213,15 @@ class StudyGroupController extends Controller
                 'role' => 'Member',
             ]);
             $joinRequest->status = 'approved';
+            $notification = DatabaseNotification::where('data->request_id', $joinRequest->id)->first();
+
+            if ($notification) {
+                $data = $notification->data;  
+                $data['status'] = 'approved';
+
+                $notification->data = $data;  
+                $notification->save();
+            }
             $joinRequest->save();
 
             $joinRequest->user->notify(new JoinRequestStatusNotification($joinRequest, 'approved', $group->group_name));

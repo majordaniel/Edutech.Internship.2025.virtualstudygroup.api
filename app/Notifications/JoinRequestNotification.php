@@ -27,7 +27,7 @@ class JoinRequestNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database', 'broadcast'];
+        return ['database', 'broadcast'];
     }
 
     /**
@@ -50,6 +50,7 @@ class JoinRequestNotification extends Notification
     {
         return [
             'message' => $this->joinRequest->user->first_name . ' requested to join ' . $this->joinRequest->group->group_name,
+            'request_id' => $this->joinRequest->id,
             'group_id' => $this->joinRequest->group_id,
             'user_id' => $this->joinRequest->user_id,
             'user_name' => $this->joinRequest->user->first_name . ' '  . $this->joinRequest->user->last_name,       
