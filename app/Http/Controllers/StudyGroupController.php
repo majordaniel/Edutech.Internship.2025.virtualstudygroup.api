@@ -244,4 +244,179 @@ class StudyGroupController extends Controller
 
         return $this->successResponse($group, 'Study group details fetched successfully');
     }
+
+    // Add member(s) to a study group by group_id
+    public function addMember(Request $request, $id)
+    {
+        // Validate request: make sure the student exists in users table
+        $request->validate([
+            'student_id' => 'required|integer|exists:users,id',
+        ]);
+
+        // Try to find group by numeric primary key first, then fall back to group_id string
+        $group = null;
+        if (is_numeric($id)) {
+            $group = StudyGroup::find($id);
+        }
+
+        if (!$group) {
+            $group = StudyGroup::where('group_id', $id)->first();
+        }
+
+        if (!$group) {
+            return response()->json(['message' => 'Study group not found'], 404);
+        }
+
+        // Resolve course code if available
+        $course = courses::find($group->course_id);
+
+        // Add student to group using GroupMember model to avoid using sync on hasMany
+        $member = GroupMember::firstOrCreate([
+            'group_id' => $group->group_id,
+            'student_id' => auth()->id(),
+        ], [
+            'course_code' => $course?->course_code ?? null,
+            'role' => 'Member',
+        ]);
+
+        // Prepare response arrays expected by tests
+        $requested = [$request->student_id];
+        $added = [$member->student_id ?? $request->student_id];
+
+        return response()->json([
+            'message' => 'Member added successfully',
+            'group' => $group->load('members')
+        ], 200);
+    }
+
+    // Function to leave a study group
+    public function leaveGroup(Request $request, $groupIdentifier)
+    {
+        $userId = (string) $request->user()->id;
+
+        // Resolve StudyGroup by numeric id or by group_id string
+        $group = null;
+        if (is_numeric($groupIdentifier)) {
+            $group = StudyGroup::find($groupIdentifier);
+        }
+
+        if (!$group) {
+            $group = StudyGroup::where('group_id', $groupIdentifier)->first();
+        }
+
+        if (!$group) {
+            return response()->json(['message' => 'Study group not found.'], 404);
+        }
+
+        // Find the membership record in the actual members table/model
+        $member = GroupMember::where('group_id', $group->group_id)
+            ->where('student_id', $userId)
+            ->first();
+
+        if (!$member) {
+            return response()->json([
+                'message' => 'You are not a member of this group.'
+            ], 403);
+        }
+
+        // If the member is a Leader, ensure there is another Leader before allowing leave
+        if (isset($member->role) && strtolower($member->role) === 'leader') {
+            $leaderCount = GroupMember::where('group_id', $group->group_id)
+                ->whereRaw("LOWER(role) = ?", ['leader'])
+                ->count();
+
+            if ($leaderCount <= 1) {
+                return response()->json([
+                    'message' => 'You cannot leave as the only leader. Please assign another leader first.'
+                ], 403);
+            }
+        }
+
+        // Delete the membership row
+        $member->delete();
+
+        return response()->json([
+            'message' => 'You have left the group successfully.'
+        ], 200);
+    }
+
+    // function for admin to remove group member
+    public function removeMember(Request $request, StudyGroup $group, User $user)
+    {
+        $requesterId = (string) $request->user()->id;
+
+        // Ensure we have the group's string id value to query the members table
+        $groupKey = $group->group_id;
+
+        // Check if the requester is a Leader (admin) in this group
+        $isAdmin = GroupMember::where('group_id', $groupKey)
+            ->where('student_id', $requesterId)
+            ->whereRaw("LOWER(role) = ?", ['leader'])
+            ->exists();
+
+        if (!$isAdmin) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Find the target membership row
+        $targetMember = GroupMember::where('group_id', $groupKey)
+            ->where('student_id', (string)$user->id)
+            ->first();
+
+        if (!$targetMember) {
+            return response()->json(['message' => 'User not in group'], 404);
+        }
+
+        // Prevent removing self (optional)
+        if ($requesterId === (string)$user->id) {
+            return response()->json(['message' => 'You cannot remove yourself'], 400);
+        }
+
+        // If the target is a Leader, ensure there's another Leader before removal
+        if (isset($targetMember->role) && strtolower($targetMember->role) === 'leader') {
+            $leaderCount = GroupMember::where('group_id', $groupKey)
+                ->whereRaw("LOWER(role) = ?", ['leader'])
+                ->count();
+
+            if ($leaderCount <= 1) {
+                return response()->json([
+                    'message' => 'Cannot remove the only leader. Assign another leader first.'
+                ], 403);
+            }
+        }
+
+        // Delete the membership row
+        $targetMember->delete();
+
+        return response()->json(['message' => 'Member removed successfully']);
+    }
+
+    //function ro read files
+    public function index(Request $request, StudyGroup $group)
+    {
+        $userId = (string)$request->user()->id;
+
+        // Ensure the requester is a member (check membership table)
+        $isMember = GroupMember::where('group_id', $group->group_id)
+            ->where('student_id', $userId)
+            ->exists();
+
+        if (!$isMember) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Optional search and pagination
+        $search = $request->query('search');
+        $perPage = (int) $request->query('per_page', 10);
+
+        $query = $group->files()->with('uploadedBy')->orderBy('created_at', 'desc');
+
+        if ($search) {
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        $files = $query->paginate(max(1, min(100, $perPage)));
+
+        return response()->json($files);
+    }
 }

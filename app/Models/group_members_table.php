@@ -12,7 +12,7 @@ class group_members_table extends Model
      * @var array
      */
     protected $fillable = [
-        'study_group_id',
+        'group_id',
         'student_id',
         'course_code',
         'role',
