@@ -216,10 +216,10 @@ class StudyGroupController extends Controller
             $notification = DatabaseNotification::where('data->request_id', $joinRequest->id)->first();
 
             if ($notification) {
-                $data = $notification->data;  
+                $data = $notification->data;
                 $data['status'] = 'approved';
 
-                $notification->data = $data;  
+                $notification->data = $data;
                 $notification->save();
             }
             $joinRequest->save();
@@ -229,7 +229,16 @@ class StudyGroupController extends Controller
             return $this->successResponse($joinRequest, 'Join request accepted');
         } else {
             $joinRequest->status = 'rejected';
+            $notification = DatabaseNotification::where('data->request_id', $joinRequest->id)->first();
+            if ($notification) {
+                $data = $notification->data;
+                $data['status'] = 'rejected';
+
+                $notification->data = $data;
+                $notification->save();
+            }
             $joinRequest->save();
+            $joinRequest->user->notify(new JoinRequestStatusNotification($joinRequest, 'rejected', $group->group_name));
 
             return $this->successResponse($joinRequest, 'Join request rejected');
         }
