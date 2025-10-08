@@ -261,7 +261,7 @@ class StudyGroupController extends Controller
         // Add student to group using GroupMember model to avoid using sync on hasMany
         $member = GroupMember::firstOrCreate([
             'group_id' => $group->group_id,
-            'student_id' => auth()->id(),
+            'student_id' => $request->student_id,
         ], [
             'course_code' => $course?->course_code ?? null,
             'role' => 'Member',
