@@ -19,9 +19,9 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => ['https://edutech-internship-2025-virtualstud.vercel.app', 'http://localhost:5173'],
 
-    'allowed_origins_patterns' => ['https://edutech-internship-2025-virtualstud.vercel.app'],
+    'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
 
