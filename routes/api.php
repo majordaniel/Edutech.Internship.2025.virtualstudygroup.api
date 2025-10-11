@@ -42,11 +42,11 @@ Route::group(['prefix' => 'study-groups', 'middleware' => 'auth:sanctum'], funct
 
     Route::post('{id}/add-member', [StudyGroupController::class, 'addMember']);
 
-    Route::delete('/groups/{group}/leave', [StudyGroupController::class, 'leaveGroup']);
+    Route::delete('/{group}/leave', [StudyGroupController::class, 'leaveGroup']);
 
-    Route::delete('/groups/{group}/admin-remove-members/{user}', [StudyGroupController::class, 'removeMember']);
+    Route::delete('/{group}/admin-remove-members/{user}', [StudyGroupController::class, 'removeMember']);
 
-    Route::get('/study-groups/{group}/files', [StudyGroupController::class, 'index']);
+    Route::get('/{group}/files', [StudyGroupController::class, 'index']);
 
 
     Route::post('{groupId}/join-request', [StudyGroupController::class, 'requestToJoinGroup']);
@@ -72,6 +72,11 @@ Route::group(['prefix' => 'notifications', 'middleware' => 'auth:sanctum'], func
 Route::group(['prefix' => 'groups', 'middleware' => 'auth:sanctum'], function () {
     Route::post('{groupId}/messages', [GroupMessageController::class, 'sendMessage']);
     Route::get('{groupId}/messages', [GroupMessageController::class, 'fetchMessages']);
+
+    //file routes
+    Route::post('/file/upload', [GroupMessageController::class, 'file_upload']);
+    Route::get('/{group_id}/get_files', [GroupMessageController::class, 'getGroupFiles']);
+    Route::get('/file/download/{id}', [GroupMessageController::class, 'downloadFile']);
 });
 
 Route::middleware('auth:sanctum')->get('/users', function (Request $request) {

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class GroupMessage extends Model
 {
-    protected $fillable = ['group_id','user_id', 'message'];
+    protected $fillable = ['group_id','user_id', 'message', 'file_id'];
 
     public function user()
     {
@@ -16,5 +16,10 @@ class GroupMessage extends Model
     public function group()
     {
         return $this->belongsTo(study_groups::class);
+    }
+
+    public function file()
+    {
+        return $this->belongsTo(files::class);
     }
 }
