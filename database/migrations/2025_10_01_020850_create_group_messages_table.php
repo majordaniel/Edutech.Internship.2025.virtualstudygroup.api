@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('group_id')->constrained('study_groups')->onDelete('cascade');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->text('message');
+            $table->foreignId('file_id')->nullable()->constrained('files')->onDelete('cascade');
+            $table->text('message')->nullable();
             $table->timestamps();
         });
     }
