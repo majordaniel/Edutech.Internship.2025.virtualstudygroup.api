@@ -256,93 +256,96 @@ class StudyGroupController extends Controller
 
     // Add member(s) to a study group by group_id
     public function addMember(Request $request, $id)
-    {
-        // Validate request: make sure the student exists in users table
-        $request->validate([
-            'student_id' => 'required|integer|exists:users,id',
-        ]);
+{
+    // 1️⃣ Validate student_id
+    $validated = $request->validate([
+        'student_id' => 'required|integer|exists:users,id',
+    ]);
 
-        // Try to find group by numeric primary key first, then fall back to group_id string
-        $group = null;
-        if (is_numeric($id)) {
-            $group = StudyGroup::find($id);
-        }
+    // 2️⃣ Find the group (by id or group_id string)
+    $group = is_numeric($id)
+        ? StudyGroup::find($id)
+        : StudyGroup::where('id', $id)->first();
 
-        if (!$group) {
-            $group = StudyGroup::where('group_id', $id)->first();
-        }
-
-        if (!$group) {
-            return response()->json(['message' => 'Study group not found'], 404);
-        }
-
-        // Resolve course code if available
-        $course = courses::find($group->course_id);
-
-        // Add student to group using GroupMember model to avoid using sync on hasMany
-        $member = GroupMember::firstOrCreate([
-            'group_id' => $group->group_id,
-            'student_id' => auth()->id(),
-        ], [
-            'course_code' => $course?->course_code ?? null,
-            'role' => 'Member',
-        ]);
-
-        // Prepare response arrays expected by tests
-        $requested = [$request->student_id];
-        $added = [$member->student_id ?? $request->student_id];
-
-        return response()->json([
-            'message' => 'Member added successfully',
-            'group' => $group->load('members')
-        ], 200);
+    if (!$group) {
+        return response()->json(['message' => 'Study group not found'], 404);
     }
 
+    // 3️⃣ Check if the authenticated user is the group leader
+    $group_role = GroupMember::where('study_group_id', $group->id)
+        ->where('student_id', auth()->id())
+        ->whereRaw("LOWER(role) = ?", ['leader'])
+        ->exists();
+    if (!$group_role) {
+        return response()->json(['message' => 'Only group leaders can add members'], 403);
+    }
+
+    // 4️⃣ Check if the student is already in the group
+    $alreadyMember = GroupMember::where('study_group_id', $group->id)
+        ->where('student_id', $validated['student_id'])
+        ->exists();
+
+    if ($alreadyMember) {
+        return response()->json(['message' => 'Student is already a member of this group'], 409);
+    }
+
+    // 5️⃣ Resolve course code if available
+    $course = Courses::find($group->course_id);
+
+    // 6️⃣ Add the new member
+    $member = GroupMember::create([
+        'study_group_id'    => $id,
+        'student_id'  => $validated['student_id'],
+        'course_code' => $course?->course_code,
+        'role'        => 'Member',
+    ]);
+
+    // 7️⃣ Return success response
+    return response()->json([
+        'message' => 'Member added successfully',
+        'member'  => $member,
+        'group'   => $group->load('members'),
+    ], 200);
+}
+
     // Function to leave a study group
-    public function leaveGroup(Request $request, $groupIdentifier)
+    public function leaveGroup(Request $request, $group)
     {
-        $userId = (string) $request->user()->id;
+        $check_group = StudyGroup::find($group);
 
-        // Resolve StudyGroup by numeric id or by group_id string
-        $group = null;
-        if (is_numeric($groupIdentifier)) {
-            $group = StudyGroup::find($groupIdentifier);
+        if(!$check_group)
+        {
+             return response()->json(['message' => 'Study group not found.'], 404);
         }
 
-        if (!$group) {
-            $group = StudyGroup::where('group_id', $groupIdentifier)->first();
-        }
-
-        if (!$group) {
-            return response()->json(['message' => 'Study group not found.'], 404);
-        }
-
-        // Find the membership record in the actual members table/model
-        $member = GroupMember::where('group_id', $group->group_id)
-            ->where('student_id', $userId)
+        $check_student = GroupMember::where('study_group_id', $group)
+            ->where('student_id', auth()->id())
             ->first();
 
-        if (!$member) {
-            return response()->json([
-                'message' => 'You are not a member of this group.'
-            ], 403);
+        if(!$check_student)
+        {
+            return response()->json(['message' => 'Student is not in study group.'], 404);
         }
 
-        // If the member is a Leader, ensure there is another Leader before allowing leave
-        if (isset($member->role) && strtolower($member->role) === 'leader') {
-            $leaderCount = GroupMember::where('group_id', $group->group_id)
+        $student_role = GroupMember::where('study_group_id', $group)
+                ->whereRaw("LOWER(role) = ?", ['leader'])
+                ->get();
+
+        //check if student id had leader role
+        $student_role_count = GroupMember::where('study_group_id', $group)
                 ->whereRaw("LOWER(role) = ?", ['leader'])
                 ->count();
 
-            if ($leaderCount <= 1) {
-                return response()->json([
+        if ($student_role_count > 0 && strtolower($check_student->role) === 'leader')
+        {
+            return response()->json([
                     'message' => 'You cannot leave as the only leader. Please assign another leader first.'
                 ], 403);
-            }
         }
 
+
         // Delete the membership row
-        $member->delete();
+        $check_student->delete();
 
         return response()->json([
             'message' => 'You have left the group successfully.'
@@ -355,20 +358,20 @@ class StudyGroupController extends Controller
         $requesterId = (string) $request->user()->id;
 
         // Ensure we have the group's string id value to query the members table
-        $groupKey = $group->group_id;
+        $groupKey = $group->id;
 
         // Check if the requester is a Leader (admin) in this group
-        $isAdmin = GroupMember::where('group_id', $groupKey)
+        $isAdmin = GroupMember::where('study_group_id', $groupKey)
             ->where('student_id', $requesterId)
             ->whereRaw("LOWER(role) = ?", ['leader'])
             ->exists();
 
         if (!$isAdmin) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message' => 'You are not authorized to remove anyone'], 403);
         }
 
         // Find the target membership row
-        $targetMember = GroupMember::where('group_id', $groupKey)
+        $targetMember = GroupMember::where('study_group_id', $groupKey)
             ->where('student_id', (string)$user->id)
             ->first();
 
