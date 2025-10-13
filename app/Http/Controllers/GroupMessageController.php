@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\ApiResponse;
 use App\Models\GroupMessage;
-use Illuminate\Http\Request;
-use App\Events\GroupMessageSent;
 use App\Models\study_groups;
-use App\Models\group_members_table as GroupMember;
+use Illuminate\Http\Request;
 use App\Models\files as Files;
+use App\Events\GroupMessageSent;
 use App\Models\GroupMessage as Chat;
+use App\Events\GroupRestrictionToggled;
 use Illuminate\Support\Facades\Storage;
+use App\Models\group_members_table as GroupMember;
 
 class GroupMessageController extends Controller
 {
@@ -28,6 +29,10 @@ class GroupMessageController extends Controller
 
         if (!$request->message) {
             return $this->badRequestResponse('Message cannot be empty');
+        }
+
+        if ($group->is_restricted && auth()->id() !== $group->created_by) {
+            return response()->json(['error' => 'Messaging is restricted to admins only'], 403);
         }
         // $filePath = null;
         // if ($request->hasFile('file')) {
@@ -58,7 +63,7 @@ class GroupMessageController extends Controller
         return response()->json($messages);
     }
 
-     //function to upload files
+    //function to upload files
     public function file_upload(Request $request)
     {
         $request->validate([
@@ -98,12 +103,9 @@ class GroupMessageController extends Controller
 
         $message = $request->message;
 
-        if($message)
-        {
+        if ($message) {
             $message1 = $request->message;
-        }
-        else
-        {
+        } else {
             $message1 = null;
         }
 
@@ -119,10 +121,10 @@ class GroupMessageController extends Controller
         // Ensure we pass the group id as the second argument to match the event constructor
         broadcast(new \App\Events\GroupMessageSent($chat, $request->group_id))->toOthers();
 
-            return response()->json([
-                'message' => 'File uploaded successfully',
-                'chat' => $chat->load('file'),
-            ], 201);
+        return response()->json([
+            'message' => 'File uploaded successfully',
+            'chat' => $chat->load('file'),
+        ], 201);
     }
 
     //function to get files
@@ -171,4 +173,20 @@ class GroupMessageController extends Controller
         return response()->download($path, $file->original_name);
     }
 
+    public function toggleRestriction($groupId)
+    {
+        $group = study_groups::findOrFail($groupId);
+
+        if (auth()->id() !== $group->created_by) {
+            return $this->forbiddenResponse('Only group admins can toggle restrictions');
+        }
+
+        $group->is_restricted = ! $group->is_restricted;
+        $group->save();
+
+        // Broadcast restriction change
+        broadcast(new GroupRestrictionToggled($group, $groupId))->toOthers();
+
+        return $this->successResponse(['is_restricted' => $group->is_restricted], 'Group restriction status updated successfully');
+    }
 }
