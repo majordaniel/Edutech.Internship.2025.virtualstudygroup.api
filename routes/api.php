@@ -72,6 +72,8 @@ Route::group(['prefix' => 'notifications', 'middleware' => 'auth:sanctum'], func
 Route::group(['prefix' => 'groups', 'middleware' => 'auth:sanctum'], function () {
     Route::post('{groupId}/messages', [GroupMessageController::class, 'sendMessage']);
     Route::get('{groupId}/messages', [GroupMessageController::class, 'fetchMessages']);
+    Route::post('/{id}/toggle-restriction', [GroupMessageController::class, 'toggleRestriction']);
+
 
     //file routes
     Route::post('/file/upload', [GroupMessageController::class, 'file_upload']);

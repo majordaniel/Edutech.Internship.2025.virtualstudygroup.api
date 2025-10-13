@@ -20,6 +20,10 @@ class study_groups extends Model
         'description',
     ];
 
+    protected $casts = [
+        'is_restricted' => 'boolean',
+    ];
+
     public function files()
     {
         return $this->hasMany(File::class, 'group_id');
