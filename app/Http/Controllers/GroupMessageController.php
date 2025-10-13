@@ -178,7 +178,7 @@ class GroupMessageController extends Controller
         $group = study_groups::findOrFail($groupId);
 
         if (auth()->id() !== $group->created_by) {
-            return response()->json(['error' => 'Unauthorized'], 403);
+            return $this->forbiddenResponse('Only group admins can toggle restrictions');
         }
 
         $group->is_restricted = ! $group->is_restricted;
@@ -187,9 +187,6 @@ class GroupMessageController extends Controller
         // Broadcast restriction change
         broadcast(new GroupRestrictionToggled($group, $groupId))->toOthers();
 
-        return response()->json([
-            'message' => 'Group restriction updated',
-            'is_restricted' => $group->is_restricted,
-        ]);
+        return $this->successResponse(['is_restricted' => $group->is_restricted], 'Group restriction status updated successfully');
     }
 }
