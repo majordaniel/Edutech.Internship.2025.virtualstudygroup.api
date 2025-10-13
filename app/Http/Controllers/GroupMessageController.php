@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\ApiResponse;
 use App\Models\GroupMessage;
-use Illuminate\Http\Request;
-use App\Events\GroupMessageSent;
 use App\Models\study_groups;
-use App\Models\group_members_table as GroupMember;
+use Illuminate\Http\Request;
 use App\Models\files as Files;
+use App\Events\GroupMessageSent;
 use App\Models\GroupMessage as Chat;
+use App\Events\GroupRestrictionToggled;
 use Illuminate\Support\Facades\Storage;
+use App\Models\group_members_table as GroupMember;
 
 class GroupMessageController extends Controller
 {
@@ -184,7 +185,7 @@ class GroupMessageController extends Controller
         $group->save();
 
         // Broadcast restriction change
-        // broadcast(new \App\Events\GroupRestrictionToggled($group))->toOthers();
+        broadcast(new GroupRestrictionToggled($group, $groupId))->toOthers();
 
         return response()->json([
             'message' => 'Group restriction updated',
