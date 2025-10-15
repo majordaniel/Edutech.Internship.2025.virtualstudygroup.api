@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class GroupMessage extends Model
 {
-    protected $fillable = ['group_id','user_id', 'message', 'file_id'];
+    use HasFactory;
+
+    protected $fillable = ['group_id','user_id', 'message', 'file_id', 'call_id',];
 
     public function user()
     {
@@ -21,5 +25,10 @@ class GroupMessage extends Model
     public function file()
     {
         return $this->belongsTo(files::class);
+    }
+
+    public function meeting()
+    {
+        return $this->belongsTo(group_meetings_table::class, 'call_id');
     }
 }

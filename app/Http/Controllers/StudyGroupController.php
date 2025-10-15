@@ -14,8 +14,12 @@ use App\Models\study_groups as StudyGroup;
 use Illuminate\Notifications\Notification;
 use App\Notifications\JoinRequestNotification;
 use App\Models\group_members_table as GroupMember;
+use App\Models\group_meetings_table as GroupMeeting;
+use App\Models\GroupMessage as GroupMessage;
+
 use Illuminate\Notifications\DatabaseNotification;
 use App\Notifications\JoinRequestStatusNotification;
+use Carbon\Carbon;
 
 class StudyGroupController extends Controller
 {
@@ -430,5 +434,63 @@ class StudyGroupController extends Controller
         $files = $query->paginate(max(1, min(100, $perPage)));
 
         return response()->json($files);
+    }
+
+    //function to start call session
+    public function startSession(Request $request, $id)
+    {
+        // Check if group exists
+        $group = StudyGroup::find($id);
+        if (!$group) {
+            return response()->json(['message' => 'Group not found'], 404);
+        }
+
+        //check of student is a member of the group
+        $group = GroupMember::where('study_group_id', $id)
+            ->where('student_id', auth()->id())
+            ->first();
+
+        if (!$group) {
+            return response()->json(['message' => 'Student is not a memeber of the group'], 404);
+        }
+
+        // Generate unique meeting code/room name
+        $roomName = 'group_' . $id . '_' . Str::uuid();
+
+        // Generate Jitsi meeting link
+        $meetingUrl = 'https://meet.jit.si/' . $roomName;
+
+        // Set meeting date and time
+        $now = Carbon::now();
+
+        $date = Carbon::now()->toDateString();
+
+        $time = Carbon::now()->toTimeString();
+
+        // Save meeting details
+        $meeting = GroupMeeting::create([
+            'host_id' => auth()->id(),
+            'group_id' => $id,
+            'meeting_date' => $date,
+            'meeting_time' => $time,
+            'meeting_link' => $meetingUrl,
+        ]);
+
+        $message = GroupMessage::create([
+            'group_id' => $id,
+            'user_id' => auth()->id(),
+            'message' => null,
+            'file_id' => null,
+            'call_id' => $meeting->id,
+        ]);
+
+        return response()->json([
+            'message' => 'Meeting started successfully',
+            'data' => [
+                'meeting' => $meeting,
+                'join_url' => $meetingUrl,
+                'meeting' => $message->load('meeting'),
+            ]
+        ], 201);
     }
 }

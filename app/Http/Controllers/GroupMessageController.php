@@ -69,7 +69,7 @@ class GroupMessageController extends Controller
         $request->validate([
             'file' => 'required|file|max:10240', // 10MB max
             'group_id' => 'required|integer',
-            'message' => 'required|string|max:1000',
+            'message' => 'nullable|string|max:1000',
         ]);
 
         //function to check if group exists

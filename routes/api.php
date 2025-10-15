@@ -52,6 +52,9 @@ Route::group(['prefix' => 'study-groups', 'middleware' => 'auth:sanctum'], funct
     Route::post('{groupId}/join-request', [StudyGroupController::class, 'requestToJoinGroup']);
     Route::post('{requestId}/handle-request', [StudyGroupController::class, 'handleJoinRequest']);
     Route::get('{groupId}/details', [StudyGroupController::class, 'groupDetails']);
+
+    //meeting route
+    Route::post('/{id}/start-session', [StudyGroupController::class, 'startSession']);
 });
 
 Route::get('/study-rooms', [StudyGroupController::class, 'getStudyRooms'])->middleware('auth:sanctum');
