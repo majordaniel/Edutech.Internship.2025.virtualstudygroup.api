@@ -33,25 +33,19 @@ Route::group(['prefix' => 'profile', 'middleware' => 'auth:sanctum'], function()
 // =====================
 Route::group(['prefix' => 'study-groups', 'middleware' => 'auth:sanctum'], function () {
     Route::post('/create', [StudyGroupController::class, 'store']);
-
     Route::get('/getUserGroups', [StudyGroupController::class, 'getUserGroups']);
-
     Route::post('/participants/search', [StudyGroupController::class, 'searchParticipants']);
-
     Route::get('/getcourses', [StudyGroupController::class, 'getcourses']);
-
     Route::post('{id}/add-member', [StudyGroupController::class, 'addMember']);
-
     Route::delete('/{group}/leave', [StudyGroupController::class, 'leaveGroup']);
-
     Route::delete('/{group}/admin-remove-members/{user}', [StudyGroupController::class, 'removeMember']);
-
     Route::get('/{group}/files', [StudyGroupController::class, 'index']);
-
-
+    Route::post('{groupId}/update', [StudyGroupController::class, 'updateGroupInfo']);
     Route::post('{groupId}/join-request', [StudyGroupController::class, 'requestToJoinGroup']);
     Route::post('{requestId}/handle-request', [StudyGroupController::class, 'handleJoinRequest']);
-    Route::get('{groupId}/details', [StudyGroupController::class, 'groupDetails']);
+    Route::get('/{groupId}/details', [StudyGroupController::class, 'groupDetails']);
+    Route::post('/{groupId}/update  ', [StudyGroupController::class, 'updateGroupInfo']);
+    
 });
 
 Route::get('/study-rooms', [StudyGroupController::class, 'getStudyRooms'])->middleware('auth:sanctum');
