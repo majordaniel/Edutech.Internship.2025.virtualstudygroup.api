@@ -492,6 +492,9 @@ class StudyGroupController extends Controller
                 'meeting' => $message->load('meeting'),
             ]
         ], 201);
+
+    }
+
     public function updateGroupInfo(Request $request, $groupId)
     {
         $request->validate([
