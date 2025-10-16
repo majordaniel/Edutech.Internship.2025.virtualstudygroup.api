@@ -42,4 +42,30 @@ class ProfileController extends Controller
         $notifications = $user->notifications()->orderBy('created_at', 'desc')->get();
         return $this->successResponse($notifications, 'Notifications retrieved successfully');
     }
+
+    public function markAsRead(Request $request, $id)
+    {
+        $user = $request->user();
+        $notification = $user->notifications()->where('id', $id)->first();
+
+        if (!$notification) {
+            return $this->notFoundResponse('Notification not found');
+        }
+
+        if ($notification->read_at) {
+            return $this->badRequestResponse('Notification already marked as read');
+        }
+
+        $notification->markAsRead();
+
+        return $this->successResponse(null, 'Notification marked as read');
+    }
+
+    public function markAllAsRead(Request $request)
+    {
+        $user = $request->user();
+        $user->unreadNotifications->markAsRead();
+
+        return $this->successResponse(null, 'All notifications marked as read');
+    }
 }

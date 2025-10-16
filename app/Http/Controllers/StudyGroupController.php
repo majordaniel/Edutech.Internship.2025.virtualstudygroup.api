@@ -492,5 +492,31 @@ class StudyGroupController extends Controller
                 'meeting' => $message->load('meeting'),
             ]
         ], 201);
+    public function updateGroupInfo(Request $request, $groupId)
+    {
+        $request->validate([
+            'group_name' => 'sometimes|required|string|max:255',
+            'description' => 'sometimes|required|string',
+        ]);
+
+        $group = StudyGroup::find($groupId);
+        if (!$group) {
+            return $this->notFoundResponse('Study group not found');
+        }
+
+        if ($group->created_by !== auth()->id()) {
+            return $this->unauthorizedResponse('Only the group creator can update group info');
+        }
+
+        if ($request->has('group_name')) {
+            $group->group_name = $request->input('group_name');
+        }
+        if ($request->has('description')) {
+            $group->description = $request->input('description');
+        }
+
+        $group->save();
+
+        return $this->successResponse($group, 'Study group info updated successfully');
     }
 }
