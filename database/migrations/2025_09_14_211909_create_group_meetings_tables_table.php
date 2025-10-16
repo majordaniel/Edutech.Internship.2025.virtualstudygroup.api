@@ -13,10 +13,12 @@ return new class extends Migration
     {
         Schema::create('group_meetings_tables', function (Blueprint $table) {
             $table->id();
-            $table->string('host_id');
+            $table->string('meeting_id');
             $table->string('group_id');
-            $table->date('meeting_date');
-            $table->time('meeting_time');
+            $table->string('topic');
+            $table->string('escription');
+            $table->dateTime('meeting_date');
+            $table->dateTime('meeting_time');
             $table->string('meeting_link');
             $table->timestamps();
         });

@@ -481,7 +481,7 @@ class StudyGroupController extends Controller
             'user_id' => auth()->id(),
             'message' => null,
             'file_id' => null,
-            'call_id' => $meeting->id,
+            'group_meetings_tables_id' => $meeting->id,
         ]);
 
         return response()->json([
