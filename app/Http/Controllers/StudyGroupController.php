@@ -20,6 +20,8 @@ use App\Models\GroupMessage as GroupMessage;
 use Illuminate\Notifications\DatabaseNotification;
 use App\Notifications\JoinRequestStatusNotification;
 use Carbon\Carbon;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
 class StudyGroupController extends Controller
 {
@@ -439,21 +441,9 @@ class StudyGroupController extends Controller
     public function startSession(Request $request, $id)
     {
         try {
-            // Extract JWT token from Authorization header
-            $authHeader = $request->header('Authorization');
-            if (!$authHeader || !str_starts_with($authHeader, 'Bearer ')) {
-                return response()->json(['message' => 'Missing Authorization token'], 401);
-            }
-
-            $token = str_replace('Bearer ', '', $authHeader);
-
-            // Decode JWT to get user ID
-            $decoded = JWT::decode($token, new Key(env('JWT_SECRET'), 'HS256'));
-            $userId = $decoded->sub ?? null; // assuming user id is stored in 'sub' claim
-
-            if (!$userId) {
-                return response()->json(['message' => 'Invalid token data'], 401);
-            }
+            // Since route is protected by auth:sanctum middleware, user is already authenticated
+            $userId = auth()->id();
+            $user = User::find($userId);
 
             // Check if group exists
             $group = StudyGroup::find($id);
@@ -461,7 +451,7 @@ class StudyGroupController extends Controller
                 return response()->json(['message' => 'Group not found'], 404);
             }
 
-            // check if user is a member of the group
+            // Check if user is a member of the group
             $isMember = GroupMember::where('study_group_id', $id)
                 ->where('student_id', $userId)
                 ->exists();
@@ -469,6 +459,24 @@ class StudyGroupController extends Controller
             if (!$isMember) {
                 return response()->json(['message' => 'User is not a member of the group'], 403);
             }
+
+            // Generate a JWT token for Jitsi authentication
+            $key = env('JWT_SECRET');
+            if (!$key) {
+                return response()->json(['message' => 'JWT secret not configured'], 500);
+            }
+
+            $payload = [
+                'sub' => $user->id,
+                'name' => $user->first_name . ' ' . $user->last_name,
+                'email' => $user->email,
+                'exp' => time() + (60 * 60), // Token expires in 1 hour
+                'aud' => 'jitsi', // Audience
+                'iss' => config('app.name'), // Issuer
+                'room' => 'group_' . $id . '_*', // Allow access to rooms with this prefix
+            ];
+
+            $jitsiToken = JWT::encode($payload, $key, 'HS256');
 
             // Generate meeting info
             $roomName = 'group_' . $id . '_' . Str::uuid();
@@ -500,14 +508,15 @@ class StudyGroupController extends Controller
                     'meeting' => $meeting,
                     'join_url' => $meetingUrl,
                     'message' => $message->load('meeting'),
+                    'jitsi_token' => $jitsiToken, // JWT token for Jitsi authentication
                 ]
             ], 201);
 
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Invalid or expired token',
+                'message' => 'An error occurred while starting the session',
                 'error' => $e->getMessage(),
-            ], 401);
+            ], 500);
         }
     }
 
