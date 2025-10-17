@@ -59,7 +59,7 @@ class GroupMessageController extends Controller
 
     public function fetchMessages($groupId)
     {
-        $messages = GroupMessage::where('group_id', $groupId)->with('user')->latest()->get();
+        $messages = GroupMessage::where('group_id', $groupId)->with('user','file')->latest()->get();
         return response()->json($messages);
     }
 

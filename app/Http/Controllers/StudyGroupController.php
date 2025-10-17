@@ -436,63 +436,79 @@ class StudyGroupController extends Controller
         return response()->json($files);
     }
 
-    //function to start call session
     public function startSession(Request $request, $id)
     {
-        // Check if group exists
-        $group = StudyGroup::find($id);
-        if (!$group) {
-            return response()->json(['message' => 'Group not found'], 404);
+        try {
+            // Extract JWT token from Authorization header
+            $authHeader = $request->header('Authorization');
+            if (!$authHeader || !str_starts_with($authHeader, 'Bearer ')) {
+                return response()->json(['message' => 'Missing Authorization token'], 401);
+            }
+
+            $token = str_replace('Bearer ', '', $authHeader);
+
+            // Decode JWT to get user ID
+            $decoded = JWT::decode($token, new Key(env('JWT_SECRET'), 'HS256'));
+            $userId = $decoded->sub ?? null; // assuming user id is stored in 'sub' claim
+
+            if (!$userId) {
+                return response()->json(['message' => 'Invalid token data'], 401);
+            }
+
+            // Check if group exists
+            $group = StudyGroup::find($id);
+            if (!$group) {
+                return response()->json(['message' => 'Group not found'], 404);
+            }
+
+            // check if user is a member of the group
+            $isMember = GroupMember::where('study_group_id', $id)
+                ->where('student_id', $userId)
+                ->exists();
+
+            if (!$isMember) {
+                return response()->json(['message' => 'User is not a member of the group'], 403);
+            }
+
+            // Generate meeting info
+            $roomName = 'group_' . $id . '_' . Str::uuid();
+            $meetingUrl = 'https://meet.jit.si/' . $roomName;
+            $now = Carbon::now();
+
+            // Save meeting record
+            $meeting = GroupMeeting::create([
+                'host_id' => $userId,
+                'group_id' => $id,
+                'meeting_date' => $now->toDateString(),
+                'meeting_time' => $now->toTimeString(),
+                'meeting_link' => $meetingUrl,
+            ]);
+
+            // Save message record (linked to the call)
+            $message = GroupMessage::create([
+                'group_id' => $id,
+                'user_id' => $userId,
+                'message' => null,
+                'file_id' => null,
+                'call_id' => $meeting->id,
+            ]);
+
+            // Return response
+            return response()->json([
+                'message' => 'Meeting started successfully',
+                'data' => [
+                    'meeting' => $meeting,
+                    'join_url' => $meetingUrl,
+                    'message' => $message->load('meeting'),
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Invalid or expired token',
+                'error' => $e->getMessage(),
+            ], 401);
         }
-
-        //check of student is a member of the group
-        $group = GroupMember::where('study_group_id', $id)
-            ->where('student_id', auth()->id())
-            ->first();
-
-        if (!$group) {
-            return response()->json(['message' => 'Student is not a memeber of the group'], 404);
-        }
-
-        // Generate unique meeting code/room name
-        $roomName = 'group_' . $id . '_' . Str::uuid();
-
-        // Generate Jitsi meeting link
-        $meetingUrl = 'https://meet.jit.si/' . $roomName;
-
-        // Set meeting date and time
-        $now = Carbon::now();
-
-        $date = Carbon::now()->toDateString();
-
-        $time = Carbon::now()->toTimeString();
-
-        // Save meeting details
-        $meeting = GroupMeeting::create([
-            'host_id' => auth()->id(),
-            'group_id' => $id,
-            'meeting_date' => $date,
-            'meeting_time' => $time,
-            'meeting_link' => $meetingUrl,
-        ]);
-
-        $message = GroupMessage::create([
-            'group_id' => $id,
-            'user_id' => auth()->id(),
-            'message' => null,
-            'file_id' => null,
-            'call_id' => $meeting->id,
-        ]);
-
-        return response()->json([
-            'message' => 'Meeting started successfully',
-            'data' => [
-                'meeting' => $meeting,
-                'join_url' => $meetingUrl,
-                'meeting' => $message->load('meeting'),
-            ]
-        ], 201);
-
     }
 
     public function updateGroupInfo(Request $request, $groupId)
