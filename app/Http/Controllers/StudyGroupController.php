@@ -20,6 +20,8 @@ use App\Models\GroupMessage as GroupMessage;
 use Illuminate\Notifications\DatabaseNotification;
 use App\Notifications\JoinRequestStatusNotification;
 use Carbon\Carbon;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
 class StudyGroupController extends Controller
 {
@@ -436,63 +438,86 @@ class StudyGroupController extends Controller
         return response()->json($files);
     }
 
-    //function to start call session
     public function startSession(Request $request, $id)
     {
-        // Check if group exists
-        $group = StudyGroup::find($id);
-        if (!$group) {
-            return response()->json(['message' => 'Group not found'], 404);
+        try {
+            // Since route is protected by auth:sanctum middleware, user is already authenticated
+            $userId = auth()->id();
+            $user = User::find($userId);
+
+            // Check if group exists
+            $group = StudyGroup::find($id);
+            if (!$group) {
+                return response()->json(['message' => 'Group not found'], 404);
+            }
+
+            // Check if user is a member of the group
+            $isMember = GroupMember::where('study_group_id', $id)
+                ->where('student_id', $userId)
+                ->exists();
+
+            if (!$isMember) {
+                return response()->json(['message' => 'User is not a member of the group'], 403);
+            }
+
+            // Generate a JWT token for Jitsi authentication
+            $key = env('JWT_SECRET');
+            if (!$key) {
+                return response()->json(['message' => 'JWT secret not configured'], 500);
+            }
+
+            $payload = [
+                'sub' => $user->id,
+                'name' => $user->first_name . ' ' . $user->last_name,
+                'email' => $user->email,
+                'exp' => time() + (60 * 60), // Token expires in 1 hour
+                'aud' => 'jitsi', // Audience
+                'iss' => config('app.name'), // Issuer
+                'room' => 'group_' . $id . '_*', // Allow access to rooms with this prefix
+            ];
+
+            $jitsiToken = JWT::encode($payload, $key, 'HS256');
+
+            // Generate meeting info
+            $roomName = 'group_' . $id . '_' . Str::uuid();
+            $meetingUrl = 'https://meet.jit.si/' . $roomName;
+            $now = Carbon::now();
+
+            // Save meeting record
+            $meeting = GroupMeeting::create([
+                'host_id' => $userId,
+                'group_id' => $id,
+                'meeting_date' => $now->toDateString(),
+                'meeting_time' => $now->toTimeString(),
+                'meeting_link' => $meetingUrl,
+            ]);
+
+            // Save message record (linked to the call)
+            $message = GroupMessage::create([
+                'group_id' => $id,
+                'user_id' => $userId,
+                'message' => null,
+                'file_id' => null,
+                'call_id' => $meeting->id,
+            ]);
+
+            // Return response
+            return response()->json([
+                'message' => 'Meeting started successfully',
+                'data' => [
+                    'meeting' => $meeting,
+                    'join_url' => $meetingUrl,
+                    'message' => $message->load('meeting'),
+                    'jitsi_token' => $jitsiToken, // JWT token for Jitsi authentication
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'An error occurred while starting the session',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        //check of student is a member of the group
-        $group = GroupMember::where('study_group_id', $id)
-            ->where('student_id', auth()->id())
-            ->first();
-
-        if (!$group) {
-            return response()->json(['message' => 'Student is not a memeber of the group'], 404);
-        }
-
-        // Generate unique meeting code/room name
-        $roomName = 'group_' . $id . '_' . Str::uuid();
-
-        // Generate Jitsi meeting link
-        $meetingUrl = 'https://meet.jit.si/' . $roomName;
-
-        // Set meeting date and time
-        $now = Carbon::now();
-
-        $date = Carbon::now()->toDateString();
-
-        $time = Carbon::now()->toTimeString();
-
-        // Save meeting details
-        $meeting = GroupMeeting::create([
-            'host_id' => auth()->id(),
-            'group_id' => $id,
-            'meeting_date' => $date,
-            'meeting_time' => $time,
-            'meeting_link' => $meetingUrl,
-        ]);
-
-        $message = GroupMessage::create([
-            'group_id' => $id,
-            'user_id' => auth()->id(),
-            'message' => null,
-            'file_id' => null,
-            'call_id' => $meeting->id,
-        ]);
-
-        return response()->json([
-            'message' => 'Meeting started successfully',
-            'data' => [
-                'meeting' => $meeting,
-                'join_url' => $meetingUrl,
-                'meeting' => $message->load('meeting'),
-            ]
-        ], 201);
-
     }
 
     public function updateGroupInfo(Request $request, $groupId)
