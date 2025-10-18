@@ -49,7 +49,10 @@ Route::group(['prefix' => 'study-groups', 'middleware' => 'auth:sanctum'], funct
     Route::post('/{id}/start-session', [StudyGroupController::class, 'startSession']);
     Route::get('/{groupId}/details', [StudyGroupController::class, 'groupDetails']);
     Route::post('/{groupId}/update  ', [StudyGroupController::class, 'updateGroupInfo']);
-    
+
+    //route to make member admin and vice versa
+    Route::post('/{groupId}/toggle-admin/{userId}', [StudyGroupController::class, 'toggleAdmin']);
+    Route::post('/{groupId}/toggle-member/{userId}', [StudyGroupController::class, 'toggleMember']);
 });
 
 Route::get('/study-rooms', [StudyGroupController::class, 'getStudyRooms'])->middleware('auth:sanctum');
@@ -77,6 +80,9 @@ Route::group(['prefix' => 'groups', 'middleware' => 'auth:sanctum'], function ()
     Route::post('/file/upload', [GroupMessageController::class, 'file_upload']);
     Route::get('/{group_id}/get_files', [GroupMessageController::class, 'getGroupFiles']);
     Route::get('/file/download/{id}', [GroupMessageController::class, 'downloadFile']);
+
+    //voice note route
+    Route::post('{groupId}/voice-note', [GroupMessageController::class, 'sendVoiceNote']);
 });
 
 Route::middleware('auth:sanctum')->get('/users', function (Request $request) {
