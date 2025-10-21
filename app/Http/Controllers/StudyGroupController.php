@@ -476,7 +476,11 @@ class StudyGroupController extends Controller
                 'room' => 'group_' . $id . '_*', // Allow access to rooms with this prefix
             ];
 
-            $jitsiToken = JWT::encode($payload, $key, 'HS256');
+            // Add kid header to JWT token to avoid 'kid' claim missing error
+            $headers = [
+                'kid' => 'default-jwt-key'
+            ];
+            $jitsiToken = JWT::encode($payload, $key, 'HS256', null, $headers);
 
             // Generate meeting info
             $roomName = 'group_' . $id . '_' . Str::uuid();
@@ -546,5 +550,75 @@ class StudyGroupController extends Controller
         $group->save();
 
         return $this->successResponse($group, 'Study group info updated successfully');
+    }
+
+     // API endpoint to toggle admin role
+    public function toggleAdmin(Request $request, $groupId, $userId)
+    {
+        $group = StudyGroup::find($groupId);
+        if (!$group) {
+            return response()->json(['message' => 'Study group not found'], 404);
+        }
+
+        if ($group->created_by !== auth()->id()) {
+            return response()->json(['message' => 'Only the group creator can toggle admin roles'], 403);
+        }
+
+        $member = GroupMember::where('study_group_id', $groupId)
+            ->where('student_id', $userId)
+            ->first();
+
+        if (!$member) {
+            return response()->json(['message' => 'User is not a member of this group'], 404);
+        }
+
+        if (strtolower($member->role) === 'member') {
+            $member->role = 'Leader';
+            $message = 'User promoted to leader successfully';
+        } elseif (strtolower($member->role) === 'leader') {
+            return response()->json(['message' => 'User is already an admin'], 404);
+        }
+
+        $member->save();
+
+        return response()->json([
+            'message' => $message,
+            'data' => $member
+        ], 200);
+    }
+
+    // API endpoint to toggle admin role
+    public function togglemember(Request $request, $groupId, $userId)
+    {
+        $group = StudyGroup::find($groupId);
+        if (!$group) {
+            return response()->json(['message' => 'Study group not found'], 404);
+        }
+
+        if ($group->created_by !== auth()->id()) {
+            return response()->json(['message' => 'Only the group creator can toggle admin roles'], 403);
+        }
+
+        $member = GroupMember::where('study_group_id', $groupId)
+            ->where('student_id', $userId)
+            ->first();
+
+        if (!$member) {
+            return response()->json(['message' => 'User is not a member of this group'], 404);
+        }
+
+        if (strtolower($member->role) === 'leader') {
+            $member->role = 'Member';
+            $message = 'User Demoted to leader successfully';
+        } elseif (strtolower($member->role) === 'member') {
+            return response()->json(['message' => 'User is already a member'], 404);
+        }
+
+        $member->save();
+
+        return response()->json([
+            'message' => $message,
+            'data' => $member
+        ], 200);
     }
 }

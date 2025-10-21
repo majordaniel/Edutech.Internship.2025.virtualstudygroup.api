@@ -12,6 +12,7 @@ use App\Models\GroupMessage as Chat;
 use App\Events\GroupRestrictionToggled;
 use Illuminate\Support\Facades\Storage;
 use App\Models\group_members_table as GroupMember;
+use App\Models\study_groups as StudyGroup;
 
 class GroupMessageController extends Controller
 {
@@ -188,5 +189,34 @@ class GroupMessageController extends Controller
         broadcast(new GroupRestrictionToggled($group, $groupId))->toOthers();
 
         return $this->successResponse(['is_restricted' => $group->is_restricted], 'Group restriction status updated successfully');
+    }
+
+    //function to add voice note
+    public function sendVoiceNote(Request $request, $groupId)
+    {
+        $request->validate([
+            'voice_note' => 'required|file|mimes:mp3,wav,ogg|max:10240', // max 10MB
+        ]);
+
+        $group = StudyGroup::findOrFail($groupId);
+        $user = auth()->user();
+
+        // Store the voice note in storage/app/public/voice_notes
+        $path = $request->file('voice_note')->store('voice_notes', 'public');
+
+        // Save message record
+        $message = GroupMessage::create([
+            'group_id' => $group->id,
+            'user_id' => $user->id,
+            'voice_note' => $path,
+        ]);
+
+        //broadcast the voice note message
+        broadcast(new \App\Events\GroupMessageSent($message, $groupId))->toOthers();
+
+        return response()->json([
+            'message' => 'Voice note sent successfully',
+            'data' => $message
+        ], 201);
     }
 }

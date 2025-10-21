@@ -10,7 +10,7 @@ class GroupMessage extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['group_id','user_id', 'message', 'file_id', 'call_id',];
+    protected $fillable = ['group_id','user_id', 'message', 'file_id', 'call_id','voice_note'];
 
     public function user()
     {
