@@ -16,7 +16,7 @@ use App\Notifications\JoinRequestNotification;
 use App\Models\group_members_table as GroupMember;
 use App\Models\group_meetings_table as GroupMeeting;
 use App\Models\GroupMessage as GroupMessage;
-
+use Illuminate\Support\Facades\Http;
 use Illuminate\Notifications\DatabaseNotification;
 use App\Notifications\JoinRequestStatusNotification;
 use Carbon\Carbon;
@@ -573,9 +573,9 @@ class StudyGroupController extends Controller
         }
 
         if (strtolower($member->role) === 'member') {
-            $member->role = 'Leader';
-            $message = 'User promoted to leader successfully';
-        } elseif (strtolower($member->role) === 'leader') {
+            $member->role = 'Admin';
+            $message = 'User promoted to Admin successfully';
+        } elseif (strtolower($member->role) === 'admin') {
             return response()->json(['message' => 'User is already an admin'], 404);
         }
 
@@ -607,9 +607,9 @@ class StudyGroupController extends Controller
             return response()->json(['message' => 'User is not a member of this group'], 404);
         }
 
-        if (strtolower($member->role) === 'leader') {
+        if (strtolower($member->role) === 'admin') {
             $member->role = 'Member';
-            $message = 'User Demoted to leader successfully';
+            $message = 'User Demoted to adminsuccessfully';
         } elseif (strtolower($member->role) === 'member') {
             return response()->json(['message' => 'User is already a member'], 404);
         }
@@ -620,5 +620,30 @@ class StudyGroupController extends Controller
             'message' => $message,
             'data' => $member
         ], 200);
+    }
+
+
+    public function startCall(Request $request)
+    {
+        // Create a new Whereby meeting via API
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . config('services.whereby.api_key'),
+            'Content-Type'  => 'application/json',
+        ])->post(config('services.whereby.base_url'), [
+            'endDate' => now()->addHour()->toIso8601String(),
+            'fields' => ['hostRoomUrl', 'roomUrl']
+        ]);
+
+        if ($response->failed()) {
+            return response()->json(['message' => 'Failed to create meeting', 'error' => $response->json()], 500);
+        }
+
+        $data = $response->json();
+
+        return response()->json([
+            'message' => 'Meeting created successfully',
+            'host_url' => $data['hostRoomUrl'] ?? null,
+            'guest_url' => $data['roomUrl'] ?? null,
+        ]);
     }
 }

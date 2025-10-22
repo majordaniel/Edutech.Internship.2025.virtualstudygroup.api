@@ -53,6 +53,9 @@ class GroupMessageController extends Controller
             // 'file' => $filePath,
         ]);
 
+        // Load the user relationship before broadcasting
+        $message->load('user');
+
         broadcast(new GroupMessageSent($message, $groupId))->toOthers();
 
         return $this->successResponse($message, 'Message sent successfully');
@@ -117,6 +120,9 @@ class GroupMessageController extends Controller
             'message' => $message1,
             'file_id' => $file->id,
         ]);
+
+        // Load the user relationship before broadcasting
+        $chat->load('user');
 
         // broadcast chat in real-time (optional)
         // Ensure we pass the group id as the second argument to match the event constructor
@@ -195,7 +201,7 @@ class GroupMessageController extends Controller
     public function sendVoiceNote(Request $request, $groupId)
     {
         $request->validate([
-            'voice_note' => 'required|file|mimes:mp3,wav,ogg|max:10240', // max 10MB
+            'voice_note' => 'required|file|mimes:mp3,wav,ogg,webm|max:10240', // max 10MB
         ]);
 
         $group = StudyGroup::findOrFail($groupId);
@@ -208,8 +214,12 @@ class GroupMessageController extends Controller
         $message = GroupMessage::create([
             'group_id' => $group->id,
             'user_id' => $user->id,
+            'message' => '', // Ensure message field is not null
             'voice_note' => $path,
         ]);
+
+        // Refresh the message with user relationship to ensure all attributes are loaded
+        $message = GroupMessage::with('user')->find($message->id);
 
         //broadcast the voice note message
         broadcast(new \App\Events\GroupMessageSent($message, $groupId))->toOthers();
