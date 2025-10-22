@@ -219,4 +219,32 @@ class GroupMessageController extends Controller
             'data' => $message
         ], 201);
     }
+
+    public function deleteMessage($groupId, $messageId)
+    {
+        $group = study_groups::find($groupId);
+        if (!$group) {
+            return $this->notFoundResponse('Group not found');
+        }
+
+        $message = GroupMessage::where('id', $messageId)
+            ->where('group_id', $groupId)
+            ->first();
+
+        if (!$message) {
+            return $this->notFoundResponse('Message not found');
+        }
+        if (auth()->id() !== $message->user_id && auth()->id() !== $group->created_by) {
+            return $this->forbiddenResponse('You do not have permission to delete this message');
+        }
+
+        if ($message->file) {
+            Storage::disk('public')->delete($message->file->path);
+            $message->file->delete();
+        }
+
+        $message->delete();
+
+        return $this->successResponse(null, 'Message deleted successfully');
+    }
 }

@@ -73,7 +73,8 @@ Route::group(['prefix' => 'notifications', 'middleware' => 'auth:sanctum'], func
 Route::group(['prefix' => 'groups', 'middleware' => 'auth:sanctum'], function () {
     Route::post('{groupId}/messages', [GroupMessageController::class, 'sendMessage']);
     Route::get('{groupId}/messages', [GroupMessageController::class, 'fetchMessages']);
-    Route::post('/{id}/toggle-restriction', [GroupMessageController::class, 'toggleRestriction']);
+    Route::delete('/{groupId}/messages/{messageId}', [GroupMessageController::class, 'deleteMessage']);
+    Route::post('/{groupId}/toggle-restriction', [GroupMessageController::class, 'toggleRestriction']);
 
 
     //file routes
