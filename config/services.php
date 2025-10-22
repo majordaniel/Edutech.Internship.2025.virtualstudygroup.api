@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'whereby' => [
+        'base_url' => env('WHEREBY_BASE_URL', 'https://api.whereby.dev/v1/meetings'),
+        'api_key' => env('WHEREBY_API_KEY'),
+    ],
+
 ];
