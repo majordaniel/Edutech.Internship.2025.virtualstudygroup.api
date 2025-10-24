@@ -623,8 +623,17 @@ class StudyGroupController extends Controller
     }
 
 
-    public function startCall(Request $request)
+    public function startCall(Request $request, $groupId)
     {
+        $group = StudyGroup::find($groupId);
+        if (!$group) {
+            return response()->json(['message' => 'Group not found'], 404);
+        }
+        if(!GroupMember::where('study_group_id', $groupId)
+            ->where('student_id', auth()->id())
+            ->exists()) {
+            return response()->json(['message' => 'User is not a member of the group'], 403);
+        }
         // Create a new Whereby meeting via API
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . config('services.whereby.api_key'),
@@ -639,6 +648,7 @@ class StudyGroupController extends Controller
         }
 
         $data = $response->json();
+        broadcast(new \App\Events\CallStarted($data, $groupId))->toOthers();
 
         return response()->json([
             'message' => 'Meeting created successfully',

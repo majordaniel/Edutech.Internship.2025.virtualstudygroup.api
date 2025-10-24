@@ -11,21 +11,20 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 
-class GroupMessageSent implements ShouldBroadcast
+class CallStarted implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $message;
-    public $groupId;
     /**
      * Create a new event instance.
      */
-    public function __construct($message, $groupId)
+    public $groupId;
+    public $data;
+    public function __construct($data, $groupId)
     {
-        $this->message = $message;
+        $this->data = $data;
         $this->groupId = $groupId;
     }
-
 
     /**
      * Get the channels the event should broadcast on.
@@ -41,29 +40,16 @@ class GroupMessageSent implements ShouldBroadcast
 
     public function broadcastAs()
     {
-        return 'message.sent';
+        return 'meeting.started';
     }
 
     public function broadcastWith(): array
     {
-        $payload = [
-            'message' => [
-                'id' => $this->message->id,
-                'group_id' => $this->message->group_id,
-                'user_id' => $this->message->user_id,
-                'message' => $this->message->message,
-                'voice_note' => $this->message->voice_note,
-                'created_at' => $this->message->created_at,
-                'updated_at' => $this->message->updated_at,
-                'user' => [
-                    'id' => $this->message->user->id,
-                    'name' => $this->message->user->first_name,
-                ],
-            ]
-        ];
+      $payload = [
+          'meeting' => $this->data,
+      ];
 
-        // Log::info('Broadcast Payload', $payload);
-
-        return $payload;
+    //   Log::info('Broadcasting CallStarted event with payload: ', $payload);
+      return $payload;
     }
 }
