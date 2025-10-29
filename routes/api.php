@@ -51,6 +51,7 @@ Route::group(['prefix' => 'study-groups', 'middleware' => 'auth:sanctum'], funct
     Route::post('/{groupId}/update  ', [StudyGroupController::class, 'updateGroupInfo']);
 
     Route::post('/{groupId}/start-call', [StudyGroupController::class, 'startCall']);
+    Route::post('/{groupId}/end-call', [StudyGroupController::class, 'endCall']);
 
     //route to make member admin and vice versa
     Route::post('/{groupId}/toggle-admin/{userId}', [StudyGroupController::class, 'toggleAdmin']);

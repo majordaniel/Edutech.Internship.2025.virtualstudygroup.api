@@ -22,6 +22,7 @@ use App\Notifications\JoinRequestStatusNotification;
 use Carbon\Carbon;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use App\Events\CallEnded;
 
 class StudyGroupController extends Controller
 {
@@ -656,4 +657,26 @@ class StudyGroupController extends Controller
             'guest_url' => $data['roomUrl'] ?? null,
         ]);
     }
+
+    public function endCall(Request $request, $groupId)
+{
+    $group = StudyGroup::find($groupId);
+    if (!$group) {
+        return response()->json(['message' => 'Group not found'], 404);
+    }
+
+    // Check that user is a member of the group
+    $isMember = GroupMember::where('study_group_id', $groupId)
+        ->where('student_id', auth()->id())
+        ->exists();
+
+    if (!$isMember) {
+        return response()->json(['message' => 'User is not a member of the group'], 403);
+    }
+
+    // Broadcast event to notify everyone the call has ended
+    broadcast(new \App\Events\CallEnded($groupId))->toOthers();
+
+    return response()->json(['message' => 'Call ended successfully']);
+}
 }
